@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-list-alt' %}
+{% block title %}كشف حساب تفصيلي - {{ supplier.name }}{% endblock %}
+{% block page_title %}كشف حساب تفصيلي: {{ supplier.name }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('supplier_statement_detailed_print', id=supplier.id, date_from=date_from, date_to=date_to) }}" target="_blank" class="btn btn-outline"><i class="fas fa-print"></i> طباعة</a>
+<a href="{{ url_for('supplier_statement', id=supplier.id) }}" class="btn btn-outline"><i class="fas fa-file-alt"></i> كشف الحساب المالي</a>
+<a href="{{ url_for('suppliers') }}" class="btn btn-outline"><i class="fas fa-arrow-right"></i> رجوع</a>
+{% endblock %}
+{% block content %}
+
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-body">
+        <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+            <div>
+                <label class="form-label">من تاريخ</label>
+                <input type="date" name="date_from" value="{{ date_from }}" class="form-control">
+            </div>
+            <div>
+                <label class="form-label">إلى تاريخ</label>
+                <input type="date" name="date_to" value="{{ date_to }}" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> عرض</button>
+        </form>
+    </div>
+</div>
+
+<div class="stats-grid" style="margin-bottom:20px;">
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-boxes"></i></div>
+        <div><div class="stat-value">{{ rows|length }}</div><div class="stat-label">عدد الأصناف المتحركة</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fas fa-cubes"></i></div>
+        <div><div class="stat-value">{{ "{:,.2f}".format(grand_qty) }}</div><div class="stat-label">صافي الكمية</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-coins"></i></div>
+        <div><div class="stat-value">{{ "{:,.2f}".format(grand_total) }}</div><div class="stat-label">صافي القيمة</div></div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+<div class="card-header"><div class="card-title"><i class="fas fa-list-ol"></i> تفاصيل الحركة (صنف بصنف)</div></div>
+<div class="table-container"><table>
+<thead><tr><th>التاريخ</th><th>الفاتورة</th><th>النوع</th><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
+<tbody>
+{% for r in rows %}
+<tr>
+  <td style="color:var(--text-muted);white-space:nowrap;">{{ r.date.strftime('%Y/%m/%d') }}</td>
+  <td>
+    <a href="{{ url_for('purchase_detail', id=r.purchase_id) }}" style="color:var(--accent);text-decoration:none;">{{ r.invoice_number }}</a>
+  </td>
+  <td>
+    {% if r.type == 'purchase' %}
+      <span class="badge badge-info">شراء</span>
+    {% else %}
+      <span class="badge badge-warning">مرتجع</span>
+    {% endif %}
+  </td>
+  <td style="font-weight:600;">{{ r.product }}</td>
+  <td>{{ "{:,.2f}".format(r.qty) }} {{ r.unit }}</td>
+  <td>{{ "{:,.2f}".format(r.price) }}</td>
+  <td style="font-weight:700;color:{{ 'var(--danger)' if r.total >= 0 else 'var(--success)' }};">{{ "{:,.2f}".format(r.total) }}</td>
+</tr>
+{% else %}
+<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">لا توجد حركة أصناف في هذه الفترة</td></tr>
+{% endfor %}
+</tbody>
+</table></div></div>
+
+<div class="card">
+<div class="card-header"><div class="card-title"><i class="fas fa-layer-group"></i> ملخص مجمّع حسب الصنف</div></div>
+<div class="table-container"><table>
+<thead><tr><th>الصنف</th><th>صافي الكمية</th><th>صافي القيمة</th></tr></thead>
+<tbody>
+{% for name, agg in products_summary.items() %}
+<tr>
+  <td style="font-weight:600;">{{ name }}</td>
+  <td>{{ "{:,.2f}".format(agg.qty) }} {{ agg.unit }}</td>
+  <td style="font-weight:700;color:{{ 'var(--danger)' if agg.total >= 0 else 'var(--success)' }};">{{ "{:,.2f}".format(agg.total) }}</td>
+</tr>
+{% else %}
+<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">لا توجد بيانات</td></tr>
+{% endfor %}
+</tbody>
+</table></div></div>
+
+{% endblock %}

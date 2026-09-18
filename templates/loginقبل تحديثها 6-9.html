@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover">
+    <title>تسجيل الدخول | {{ app_brand_title | default('نظام ERP 2026') }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet"></noscript>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        :root{
+            --primary:#0066FF;
+            --secondary:#7C3AED;
+            --accent:#00D4FF;
+            --pink:#EC4899;
+            --background:#0F0F1E;
+            --foreground:#FFFFFF;
+            --card:#1A1A2E;
+            --border:#2A2A3E;
+            --destructive:#FF4466;
+            --radius:12px;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        html,body{min-height:100%}
+        body{
+            font-family:Roboto, Cairo, sans-serif;
+            background: var(--background);
+            color:var(--foreground);
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:28px 16px;
+            overflow-x:hidden;
+        }
+
+        /* Background layers */
+        .bg{
+            position:fixed; inset:0;
+            z-index:0;
+            pointer-events:none;
+            overflow:hidden;
+        }
+        .bg::before{
+            content:'';
+            position:absolute; inset:-30%;
+            background:
+                radial-gradient(ellipse 60% 55% at 20% 25%, rgba(0,102,255,.25) 0%, transparent 55%),
+                radial-gradient(ellipse 60% 55% at 80% 75%, rgba(124,58,237,.20) 0%, transparent 55%),
+                radial-gradient(ellipse 55% 50% at 70% 20%, rgba(236,72,153,.12) 0%, transparent 55%),
+                radial-gradient(ellipse 55% 55% at 30% 85%, rgba(0,212,255,.12) 0%, transparent 55%);
+            filter: blur(18px);
+            animation: gradientShift 16s ease-in-out infinite;
+            transform: translate3d(0,0,0);
+        }
+        .bg::after{
+            content:'';
+            position:absolute; inset:0;
+            opacity:.22;
+            background-image:
+                linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: radial-gradient(circle at 50% 35%, rgba(0,0,0,1) 0%, rgba(0,0,0,.6) 40%, rgba(0,0,0,0) 72%);
+        }
+        @keyframes gradientShift{
+            0%{transform:translate(-2%, -1%) scale(1)}
+            50%{transform:translate(2%, 2%) scale(1.03)}
+            100%{transform:translate(-2%, -1%) scale(1)}
+        }
+
+        .particle{
+            position:absolute;
+            width:220px; height:220px;
+            border-radius:999px;
+            filter: blur(2px);
+            opacity:.55;
+            mix-blend-mode: screen;
+            transform: translate3d(0,0,0);
+        }
+        .p1{left:6%; top:12%; background: radial-gradient(circle at 30% 30%, rgba(0,212,255,.9), rgba(0,102,255,0) 65%); animation: float1 12s ease-in-out infinite;}
+        .p2{left:72%; top:18%; width:260px; height:260px; background: radial-gradient(circle at 30% 30%, rgba(124,58,237,.95), rgba(124,58,237,0) 65%); animation: float2 15s ease-in-out infinite;}
+        .p3{left:18%; top:70%; width:280px; height:280px; background: radial-gradient(circle at 30% 30%, rgba(236,72,153,.78), rgba(236,72,153,0) 65%); animation: float3 16s ease-in-out infinite;}
+        .p4{left:78%; top:68%; width:220px; height:220px; background: radial-gradient(circle at 30% 30%, rgba(0,102,255,.85), rgba(0,102,255,0) 65%); animation: float4 14s ease-in-out infinite;}
+        .p5{left:44%; top:46%; width:190px; height:190px; background: radial-gradient(circle at 30% 30%, rgba(0,212,255,.55), rgba(0,212,255,0) 65%); animation: float5 18s ease-in-out infinite;}
+        @keyframes float1{0%,100%{transform:translate(0,0)}50%{transform:translate(26px,16px)}}
+        @keyframes float2{0%,100%{transform:translate(0,0)}50%{transform:translate(-22px,22px)}}
+        @keyframes float3{0%,100%{transform:translate(0,0)}50%{transform:translate(18px,-20px)}}
+        @keyframes float4{0%,100%{transform:translate(0,0)}50%{transform:translate(-18px,-14px)}}
+        @keyframes float5{0%,100%{transform:translate(0,0)}50%{transform:translate(12px,18px)}}
+
+        /* Shell */
+        .page{
+            width:100%;
+            max-width: 980px;
+            position:relative;
+            z-index:1;
+            border-radius: 18px;
+            overflow:hidden;
+            border:1px solid rgba(255,255,255,.10);
+            background: rgba(10,10,22,.45);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            box-shadow: 0 22px 70px rgba(0,0,0,.55);
+        }
+        .top-bar{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding: 14px 18px;
+            border-bottom:1px solid rgba(255,255,255,.08);
+            background: linear-gradient(90deg, rgba(0,102,255,.10), rgba(124,58,237,.08), rgba(236,72,153,.06));
+        }
+        .brand{
+            display:flex; align-items:center; gap:10px; min-width:0;
+        }
+        .brand-badge{
+            width:70px; height:70px;
+            border-radius: 16px;
+            display:flex; align-items:center; justify-content:center;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            overflow: visible;
+        }
+        .brand-badge img{
+            width:100%;
+            height:100%;
+            object-fit:contain;
+            border-radius:0;
+            display:block;
+            filter: drop-shadow(0 6px 18px rgba(0,0,0,.35));
+        }
+        .brand-title{
+            font-family:Poppins, sans-serif;
+            font-size: 14px;
+            font-weight:700;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+        .brand-sub{
+            color: rgba(255,255,255,.62);
+            font-size: 11px;
+            margin-top:2px;
+            line-height:1.2;
+        }
+        .top-nav{display:flex;gap:6px;position:relative;flex-shrink:0}
+        .top-nav a,
+        .top-nav button{
+            color: rgba(255,255,255,.70);
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 10px;
+            text-decoration:none;
+            border:1px solid rgba(255,255,255,.10);
+            background: rgba(255,255,255,.03);
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease, color .2s ease;
+            cursor:pointer;
+            user-select:none;
+            font-family: inherit;
+            line-height: 1.2;
+        }
+        .top-nav a:hover,
+        .top-nav button:hover{
+            transform: translateY(-1px);
+            border-color: rgba(0,212,255,.35);
+            box-shadow: 0 10px 24px rgba(0,212,255,.10);
+            color:#fff;
+        }
+        .top-nav button{appearance:none}
+
+        .about-popup{
+            display:none;
+            position:absolute;
+            top:44px;
+            left:0;
+            width:min(360px, 92vw);
+            border-radius: 14px;
+            padding: 14px 14px;
+            background: rgba(20,20,44,.86);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border:1px solid rgba(255,255,255,.10);
+            box-shadow: 0 24px 70px rgba(0,0,0,.55);
+            font-size: 13px;
+            color: rgba(255,255,255,.82);
+            line-height:1.8;
+            text-align:right;
+            z-index:10;
+        }
+        .about-popup.open{display:block}
+        .about-popup strong{
+            display:block;
+            font-family:Poppins, sans-serif;
+            font-weight:700;
+            color:#fff;
+            margin-bottom:6px;
+        }
+        .about-actions{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+            margin-top:10px;
+        }
+        .about-btn{
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            padding:10px 12px;
+            border-radius: 14px;
+            border:1px solid rgba(255,255,255,.10);
+            background: rgba(255,255,255,.03);
+            text-decoration:none;
+            color:#fff;
+            font-weight:800;
+            font-size: 13px;
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+        .about-btn:hover{
+            transform: translateY(-1px);
+            border-color: rgba(255,255,255,.18);
+            box-shadow: 0 18px 60px rgba(0,0,0,.25);
+        }
+        .about-btn.wa{border-color: rgba(37,211,102,.25)}
+        .about-btn.wa i{color:#25d366}
+        .about-btn.fb{border-color: rgba(96,165,250,.25)}
+        .about-btn.fb i{color:#60a5fa}
+
+        /* CSS-only toggles (works even if JS disabled) */
+        .sr-only{
+            position:absolute !important;
+            width:1px;height:1px;
+            padding:0;margin:-1px;
+            overflow:hidden;clip:rect(0,0,0,0);
+            white-space:nowrap;border:0;
+        }
+        #aboutToggle:checked + label + #aboutPopup{display:block}
+        #forgotToggle:checked ~ #forgotModal{display:flex}
+
+        /* Forgot password modal */
+        .modal{
+            display:none;
+            position:fixed;
+            inset:0;
+            z-index:50;
+            align-items:center;
+            justify-content:center;
+            padding:16px;
+            background:rgba(0,0,0,.62);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        .modal.open{display:flex}
+        .modal-card{
+            width:min(520px, 96vw);
+            border-radius: 18px;
+            border:1px solid rgba(255,255,255,.10);
+            background: rgba(10,10,22,.78);
+            box-shadow: 0 24px 80px rgba(0,0,0,.60);
+            padding: 18px 16px;
+        }
+        .modal-head{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            margin-bottom:12px;
+        }
+        .modal-title{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            font-family:Poppins, sans-serif;
+            font-weight:700;
+            font-size:16px;
+        }
+        .modal-x{
+            width:38px;height:38px;
+            border-radius: 12px;
+            border:1px solid rgba(255,255,255,.12);
+            background: rgba(255,255,255,.03);
+            color: rgba(255,255,255,.85);
+            cursor:pointer;
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+        .modal-x:hover{
+            transform: translateY(-1px);
+            border-color: rgba(0,212,255,.22);
+            box-shadow: 0 14px 40px rgba(0,212,255,.08);
+        }
+        .modal-body{
+            color: rgba(255,255,255,.78);
+            font-size: 13.5px;
+            line-height: 1.8;
+        }
+        .modal-actions{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+            margin-top:14px;
+        }
+        .chip{
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            padding:10px 12px;
+            border-radius: 14px;
+            border:1px solid rgba(255,255,255,.10);
+            background: rgba(255,255,255,.03);
+            text-decoration:none;
+            color:#fff;
+            font-weight:700;
+            font-size: 13px;
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+        .chip:hover{
+            transform: translateY(-1px);
+            border-color: rgba(255,255,255,.18);
+            box-shadow: 0 18px 60px rgba(0,0,0,.25);
+        }
+        .chip.wa{border-color: rgba(37,211,102,.25)}
+        .chip.wa i{color:#25d366}
+        .chip.fb{border-color: rgba(96,165,250,.25)}
+        .chip.fb i{color:#60a5fa}
+
+        /* Main split */
+        .main{
+            display:grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 520px;
+        }
+        .form-side{
+            padding: 32px 28px;
+            display:flex;
+            flex-direction:column;
+            justify-content:center;
+            gap:16px;
+            position:relative;
+        }
+        .hero-side{
+            padding: 34px 30px;
+            display:flex;
+            flex-direction:column;
+            justify-content:center;
+            align-items:center;
+            text-align:center;
+            background:
+                radial-gradient(ellipse 70% 60% at 30% 30%, rgba(0,102,255,.14) 0%, transparent 60%),
+                radial-gradient(ellipse 70% 60% at 70% 75%, rgba(236,72,153,.10) 0%, transparent 60%),
+                linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+            border-right:1px solid rgba(255,255,255,.08);
+        }
+
+        /* Entrance */
+        .stagger{opacity:0; transform: translateY(18px); animation: enter .7s ease-out forwards}
+        .d1{animation-delay:.10s}.d2{animation-delay:.20s}.d3{animation-delay:.30s}.d4{animation-delay:.40s}
+        @keyframes enter{to{opacity:1; transform:none}}
+
+        /* Text */
+        .grad-text{
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--pink));
+            -webkit-background-clip: text;
+            background-clip:text;
+            color: transparent;
+        }
+        .headline{
+            font-family:Poppins, sans-serif;
+            font-size: 34px;
+            line-height: 1.1;
+            font-weight:700;
+            margin-bottom:4px;
+        }
+        .subline{
+            font-size: 14px;
+            color: rgba(255,255,255,.70);
+            line-height:1.7;
+        }
+
+        /* Pills */
+        .pills{
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+            margin-top:10px;
+        }
+        .pill{
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 999px;
+            border:1px solid rgba(255,255,255,.12);
+            background: rgba(255,255,255,.03);
+            color: rgba(255,255,255,.86);
+            transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+            user-select:none;
+        }
+        .pill i{font-size:12px;opacity:.95}
+        .pill.blue{border-color: rgba(0,102,255,.28); box-shadow: 0 14px 34px rgba(0,102,255,.10)}
+        .pill.purple{border-color: rgba(124,58,237,.28); box-shadow: 0 14px 34px rgba(124,58,237,.10)}
+        .pill.cyan{border-color: rgba(0,212,255,.28); box-shadow: 0 14px 34px rgba(0,212,255,.08)}
+        .pill:hover{transform: translateY(-1px); border-color: rgba(255,255,255,.20)}
+
+        /* Alert */
+        .alert{
+            display:flex;
+            gap:10px;
+            align-items:flex-start;
+            padding: 12px 12px;
+            border-radius: 14px;
+            border:1px solid rgba(255,68,102,.28);
+            background: rgba(255,68,102,.10);
+            color: rgba(255,255,255,.92);
+            line-height:1.55;
+            font-size: 13px;
+            animation: fadeIn .35s ease both;
+        }
+        .alert i{margin-top:2px; color: #ffd1da}
+        @keyframes fadeIn{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
+
+        /* Form */
+        form{display:flex;flex-direction:column;gap:12px}
+        .field{
+            display:flex;
+            flex-direction:column;
+            gap:7px;
+        }
+        label{
+            font-size: 12.5px;
+            color: rgba(255,255,255,.78);
+            font-weight: 700;
+            font-family: Roboto, Cairo, sans-serif;
+        }
+        .input-wrap{
+            position:relative;
+        }
+        .input{
+            width:100%;
+            padding: 12px 42px 12px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,.10);
+            background: rgba(26,26,46,.55);
+            color: var(--foreground);
+            font-size: 14px;
+            outline: none;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transition: box-shadow .3s ease, border-color .3s ease, transform .2s ease, background .3s ease;
+        }
+        .input::placeholder{color: rgba(255,255,255,.42)}
+        .icon{
+            position:absolute;
+            right: 14px;
+            top:50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,.55);
+            font-size: 14px;
+            pointer-events:none;
+        }
+        .action{
+            position:absolute;
+            left: 10px;
+            top:50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: 1px solid rgba(255,255,255,.12);
+            color: rgba(255,255,255,.75);
+            width: 36px;
+            height: 34px;
+            border-radius: 12px;
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+        }
+        .action:hover{
+            transform: translateY(-50%) scale(1.03);
+            border-color: rgba(0,212,255,.30);
+            box-shadow: 0 14px 36px rgba(0,212,255,.10);
+        }
+        .input.user:focus{
+            border-color: rgba(0,102,255,.55);
+            box-shadow: 0 0 0 4px rgba(0,102,255,.18), 0 22px 60px rgba(0,102,255,.12);
+            background: rgba(26,26,46,.65);
+        }
+        .input.pass:focus{
+            border-color: rgba(124,58,237,.55);
+            box-shadow: 0 0 0 4px rgba(124,58,237,.18), 0 22px 60px rgba(124,58,237,.12);
+            background: rgba(26,26,46,.65);
+        }
+
+        .row{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+        .remember{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            font-size: 13px;
+            color: rgba(255,255,255,.75);
+            user-select:none;
+        }
+        .remember input{
+            width: 16px; height: 16px;
+            accent-color: var(--accent);
+            cursor:pointer;
+        }
+        .link{
+            color: rgba(0,212,255,.9);
+            text-decoration:none;
+            font-size: 13px;
+            font-weight:700;
+            transition: text-decoration-color .2s ease, color .2s ease;
+        }
+        .link:hover{
+            text-decoration: underline;
+            color: #b9f3ff;
+        }
+
+        .btn{
+            width:100%;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,.12);
+            background: linear-gradient(90deg, rgba(0,102,255,1), rgba(124,58,237,1));
+            color:#fff;
+            font-family:Poppins, sans-serif;
+            font-weight:700;
+            font-size: 14px;
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:10px;
+            box-shadow: 0 22px 60px rgba(0,102,255,.14);
+            transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+        }
+        .btn:hover{
+            transform: translateY(-1px);
+            box-shadow: 0 26px 70px rgba(0,102,255,.20), 0 0 0 1px rgba(0,212,255,.18);
+            filter: brightness(1.05);
+        }
+        .btn:active{transform: scale(.98)}
+        .btn[disabled]{opacity:.55; cursor:not-allowed; transform:none}
+
+        .spinner{
+            width: 18px; height: 18px;
+            border-radius: 999px;
+            border: 2px solid rgba(255,255,255,.25);
+            border-top-color: rgba(255,255,255,.9);
+            animation: spin .7s linear infinite;
+        }
+        @keyframes spin{to{transform: rotate(360deg)}}
+
+        /* Hero lock */
+        .lock-wrap{
+            width: 150px;
+            height: 150px;
+            border-radius: 28px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            position:relative;
+            transform-style: preserve-3d;
+            animation: slowSpin 8s linear infinite;
+        }
+        .lock-glow{
+            position:absolute; inset:-18px;
+            border-radius: 36px;
+            background: radial-gradient(circle at 30% 30%, rgba(0,212,255,.22), rgba(124,58,237,.18), rgba(236,72,153,.10), transparent 65%);
+            filter: blur(10px);
+            opacity:.95;
+        }
+        .lock-card{
+            width: 150px; height: 150px;
+            border-radius: 28px;
+            background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+            border:1px solid rgba(255,255,255,.12);
+            box-shadow:
+                0 28px 70px rgba(0,0,0,.45),
+                0 0 0 1px rgba(0,212,255,.14),
+                0 0 36px rgba(0,102,255,.12);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            transform: translateZ(18px) rotateX(10deg) rotateY(-14deg);
+        }
+        .lock{
+            width: 74px;
+            height: 74px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255,208,130,.95), rgba(255,170,60,.85));
+            position:relative;
+            box-shadow: 0 18px 42px rgba(245,158,11,.22), 0 0 0 1px rgba(255,255,255,.18);
+        }
+        .lock::before{
+            content:'';
+            position:absolute;
+            top:-28px;
+            right: 16px;
+            width: 42px;
+            height: 40px;
+            border: 8px solid rgba(255,255,255,.86);
+            border-bottom:none;
+            border-radius: 24px 24px 0 0;
+            opacity:.85;
+            filter: drop-shadow(0 10px 14px rgba(0,0,0,.25));
+        }
+        .lock::after{
+            content:'';
+            position:absolute;
+            top: 30px;
+            right: 32px;
+            width: 10px;
+            height: 18px;
+            border-radius: 6px;
+            background: rgba(0,0,0,.35);
+        }
+        @keyframes slowSpin{to{transform: rotate(360deg)}}
+
+        .hero-title{
+            font-family:Poppins, sans-serif;
+            font-size: 22px;
+            font-weight:700;
+            margin-top: 14px;
+        }
+        .features{
+            margin-top: 18px;
+            display:grid;
+            gap:10px;
+            width:100%;
+            max-width: 360px;
+        }
+        .mod-pill{
+            display:inline-flex;align-items:center;gap:6px;
+            padding:6px 12px;border-radius:999px;font-size:11.5px;font-weight:600;
+            border:1px solid rgba(255,255,255,.12);
+            background:rgba(255,255,255,.05);
+            color:rgba(255,255,255,.88);
+        }
+        .mod-pill i{font-size:11px;opacity:.85;color:var(--accent)}
+        .feat{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            padding: 10px 12px;
+            border-radius: 14px;
+            border:1px solid rgba(255,255,255,.10);
+            background: rgba(255,255,255,.03);
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+        .feat:hover{
+            transform: translateY(-1px);
+            border-color: rgba(0,212,255,.22);
+            box-shadow: 0 18px 50px rgba(0,212,255,.08);
+        }
+        .feat i{
+            width:34px;height:34px;border-radius:12px;
+            display:flex;align-items:center;justify-content:center;
+            background: rgba(0,102,255,.12);
+            border:1px solid rgba(0,102,255,.18);
+            color: #cfe7ff;
+            flex-shrink:0;
+        }
+        .feat b{display:block;font-size:13px}
+        .feat span{display:block;font-size:12px;color: rgba(255,255,255,.65);margin-top:2px}
+
+        /* Footer */
+        .footer{
+            padding: 12px 16px;
+            text-align:center;
+            border-top:1px solid rgba(255,255,255,.08);
+            background: rgba(255,255,255,.02);
+            color: rgba(255,255,255,.55);
+            font-size: 11.5px;
+        }
+        .footer strong{color: rgba(255,255,255,.85)}
+
+        @media (max-width: 900px){
+            .main{grid-template-columns:1fr}
+            .hero-side{border-right:none;border-bottom:1px solid rgba(255,255,255,.08)}
+            .headline{font-size: 30px}
+        }
+        @media (max-width: 520px){
+            .form-side,.hero-side{padding: 22px 16px}
+            .headline{font-size: 26px}
+        }
+
+        /* ============================================================
+           Mobile Performance — تحسين الأداء على الهواتف
+           لا تغيير في الألوان أو الثيم — فقط إيقاف العمليات الثقيلة
+           ============================================================ */
+        @media (max-width: 768px) {
+            /* Preserve the same UI look while reducing GPU-heavy effects */
+            .bg::before {
+                animation: none !important;
+                filter: blur(8px) !important;
+                transform: translate(0,0) scale(1) !important;
+            }
+            .particle {
+                display: none !important;
+            }
+            .lock-wrap {
+                animation: none !important;
+            }
+            .stagger {
+                animation: none !important;
+                opacity: 1 !important;
+                transform: none !important;
+            }
+            .page {
+                backdrop-filter: blur(6px) !important;
+                -webkit-backdrop-filter: blur(6px) !important;
+                box-shadow: 0 14px 42px rgba(0,0,0,.42) !important;
+            }
+            .top-bar,
+            .modal,
+            .about-popup,
+            .modal-card,
+            .input,
+            .lock-card {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            .bg::after {
+                opacity: .10 !important;
+                background-size: 56px 56px !important;
+            }
+            .feat, .pill, .btn, .chip, .about-btn, .top-nav a, .top-nav button, .action {
+                transition: none !important;
+            }
+            .lock-card {
+                box-shadow:
+                    0 14px 36px rgba(0,0,0,.36),
+                    0 0 0 1px rgba(0,212,255,.10) !important;
+                transform: translateZ(0) rotateX(6deg) rotateY(-8deg) !important;
+            }
+            .hero-side {
+                background:
+                    radial-gradient(ellipse 78% 62% at 30% 30%, rgba(0,102,255,.14) 0%, transparent 60%),
+                    radial-gradient(ellipse 74% 64% at 70% 75%, rgba(236,72,153,.09) 0%, transparent 60%),
+                    linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02)) !important;
+            }
+            .form-side,
+            .hero-side {
+                content-visibility: auto;
+                contain: layout paint style;
+            }
+        }
+
+        /* لمن يفضّل تقليل الحركة في إعدادات الجهاز */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg" aria-hidden="true">
+        <div class="particle p1"></div>
+        <div class="particle p2"></div>
+        <div class="particle p3"></div>
+        <div class="particle p4"></div>
+        <div class="particle p5"></div>
+    </div>
+
+    <div class="page">
+        <div class="top-bar">
+            <div class="brand">
+                <div class="brand-badge">
+                    <img src="{{ url_for('static', filename='img/logo-makers-erp-3d.png') }}" alt="Makers ERP">
+                </div>
+                <div style="min-width:0">
+                    <div class="brand-title">{{ app_brand_title | default('نظام ERP 2026') }}</div>
+                    <div class="brand-sub">ERP 2026 — لوحة دخول آمنة</div>
+                </div>
+            </div>
+            <nav class="top-nav" id="topNav">
+                <a class="active" style="opacity:.9">الرئيسية</a>
+                <input class="sr-only" type="checkbox" id="aboutToggle" />
+                <label for="aboutToggle" id="aboutBtn" style="display:inline-flex;align-items:center;gap:6px;">
+                    حول
+                </label>
+                <div class="about-popup" id="aboutPopup">
+                    <strong>للتواصل والاستفسارات</strong>
+                    إذا احتجت مساعدة أو دعم فني أو اشتراك — تواصل معنا عبر:
+                    <div style="margin-top:6px;color:rgba(255,255,255,.70);font-size:12.5px;">
+                        واتساب: <b style="color:#fff">01103763082</b>
+                    </div>
+                    <div class="about-actions">
+                        <a class="about-btn wa" href="https://wa.me/201103763082" target="_blank" rel="noopener">
+                            <i class="fab fa-whatsapp"></i> واتساب
+                        </a>
+                        <a class="about-btn fb" href="https://www.facebook.com/people/System-Makers/100095476066188/" target="_blank" rel="noopener">
+                            <i class="fab fa-facebook"></i> فيسبوك
+                        </a>
+                    </div>
+                    <div style="margin-top:10px;">
+                        <label for="aboutToggle" class="about-btn" style="justify-content:center;width:100%;opacity:.9;">
+                            <i class="fas fa-times"></i> إغلاق
+                        </label>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+        <div class="main">
+            <div class="form-side">
+                <div class="stagger d1">
+                    <div class="headline grad-text">نظام ERP 2026</div>
+                    <div class="subline"></div>
+                    <div class="pills">
+                        <span class="pill blue"><i class="fas fa-bolt"></i> سريع</span>
+                        <span class="pill purple"><i class="fas fa-shield-alt"></i> آمن</span>
+                        <span class="pill cyan"><i class="fas fa-cubes"></i> قوي</span>
+                    </div>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% for category, message in messages %}
+                    <div class="alert stagger d2" role="alert" aria-live="polite">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        <div>{{ message }}</div>
+                    </div>
+                    {% endfor %}
+                {% endwith %}
+
+                <div class="stagger d3">
+                    <form method="POST" id="loginForm" novalidate>
+                        <div class="field">
+                            <label for="username">اسم المستخدم</label>
+                            <div class="input-wrap">
+                                <i class="fas fa-user icon"></i>
+                                <input id="username" type="text" name="username" class="input user" placeholder="أدخل اسم المستخدم" autocomplete="username" required autofocus>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="password">كلمة المرور</label>
+                            <div class="input-wrap">
+                                <i class="fas fa-lock icon"></i>
+                                <input id="password" type="password" name="password" class="input pass" placeholder="أدخل كلمة المرور" autocomplete="current-password" required>
+                                <button class="action" type="button" id="togglePass" aria-label="إظهار كلمة المرور" title="إظهار/إخفاء">
+                                    <i class="fas fa-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <label class="remember" for="remember">
+                                <input type="checkbox" id="remember" name="remember">
+                                تذكرني
+                            </label>
+                            <label class="link" for="forgotToggle" style="cursor:pointer;user-select:none;">
+                                هل نسيت كلمة المرور؟
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn" id="submitBtn">
+                            <i class="fas fa-arrow-right-to-bracket"></i>
+                            <span id="submitText">دخول</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="hero-side">
+                <div class="lock-wrap stagger d1" aria-hidden="true">
+                    <div class="lock-glow"></div>
+                    <div class="lock-card">
+                        <div class="lock"></div>
+                    </div>
+                </div>
+                <div class="hero-title stagger d2">مرحباً بعودتك 👋</div>
+                <div class="subline stagger d3" style="max-width:400px;margin-top:8px;line-height:1.65;">
+                    <strong style="color:#fff;font-size:15px;display:block;margin-bottom:8px;">نظام ERP متكامل</strong>
+                    منصة واحدة لإدارة أعمالك باحترافية — من الحسابات إلى الموارد البشرية.
+                </div>
+                <div class="erp-modules stagger d3" style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px;max-width:400px;">
+                    <span class="mod-pill"><i class="fas fa-calculator"></i> حسابات</span>
+                    <span class="mod-pill"><i class="fas fa-warehouse"></i> مخازن</span>
+                    <span class="mod-pill"><i class="fas fa-industry"></i> تصنيع وإنتاج</span>
+                    <span class="mod-pill"><i class="fas fa-users-cog"></i> الموارد البشرية</span>
+                    <span class="mod-pill"><i class="fas fa-chart-pie"></i> تقارير شاملة</span>
+                </div>
+                <div class="features stagger d4">
+                    <div class="feat">
+                        <i class="fas fa-layer-group"></i>
+                        <div style="text-align:right">
+                            <b>إدارة متكاملة</b>
+                            <span>مبيعات، مشتريات، مخزون، ومالية في مكان واحد</span>
+                        </div>
+                    </div>
+                    <div class="feat">
+                        <i class="fas fa-shield-halved"></i>
+                        <div style="text-align:right">
+                            <b>أمان وموثوقية</b>
+                            <span>صلاحيات دقيقة ومتابعة لحظية</span>
+                        </div>
+                    </div>
+                    <div class="feat">
+                        <i class="fas fa-gauge-high"></i>
+                        <div style="text-align:right">
+                            <b>أداء سريع</b>
+                            <span>واجهة مؤسسية وتجربة سلسة</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            برمجة: <strong>محمد ناصر عبدالله</strong> | <strong>System Makers © 2026</strong>
+        </div>
+    </div>
+
+    <input class="sr-only" type="checkbox" id="forgotToggle" />
+    <div class="modal" id="forgotModal" role="dialog" aria-modal="true" aria-label="نسيت كلمة المرور">
+        <div class="modal-card">
+            <div class="modal-head">
+                <div class="modal-title"><i class="fas fa-key" style="color:var(--accent)"></i> نسيت كلمة المرور</div>
+                <label class="modal-x" for="forgotToggle" role="button" tabindex="0" aria-label="إغلاق" style="display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-times"></i>
+                </label>
+            </div>
+            <div class="modal-body">
+                لاسترجاع كلمة المرور أو إعادة تعيينها، تواصل مع الدعم وسيتم مساعدتك فورًا.
+                <div style="margin-top:8px;color:rgba(255,255,255,.65);font-size:12.5px;">
+                    واتساب: <b style="color:#fff">01103763082</b>
+                </div>
+                <div class="modal-actions">
+                    <a class="chip wa" href="https://wa.me/201103763082" target="_blank" rel="noopener">
+                        <i class="fab fa-whatsapp"></i> مراسلة واتساب
+                    </a>
+                    <a class="chip fb" href="https://www.facebook.com/people/System-Makers/100095476066188/" target="_blank" rel="noopener">
+                        <i class="fab fa-facebook"></i> صفحة فيسبوك
+                    </a>
+                    <label class="chip" for="forgotToggle" style="justify-content:center;">
+                        <i class="fas fa-times"></i> إغلاق
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CSS-only toggles handle open/close; JS adds convenience close-on-outside + ESC
+        document.addEventListener('click', function (e) {
+            var aboutToggle = document.getElementById('aboutToggle');
+            var topNav = document.getElementById('topNav');
+            if (!aboutToggle || !topNav) return;
+            if (topNav.contains(e.target)) return;
+            aboutToggle.checked = false;
+        });
+        document.addEventListener('keydown', function(e){
+            if(e.key !== 'Escape') return;
+            var aboutToggle = document.getElementById('aboutToggle');
+            var forgotToggle = document.getElementById('forgotToggle');
+            if(aboutToggle) aboutToggle.checked = false;
+            if(forgotToggle) forgotToggle.checked = false;
+        });
+
+        (function(){
+            var btn = document.getElementById('togglePass');
+            var inp = document.getElementById('password');
+            if(btn && inp){
+                btn.addEventListener('click', function(){
+                    var isPwd = inp.getAttribute('type') === 'password';
+                    inp.setAttribute('type', isPwd ? 'text' : 'password');
+                    btn.setAttribute('aria-label', isPwd ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
+                    var icon = btn.querySelector('i');
+                    if(icon){
+                        icon.classList.toggle('fa-eye', !isPwd);
+                        icon.classList.toggle('fa-eye-slash', isPwd);
+                    }
+                });
+            }
+        })();
+
+        (function(){
+            var form = document.getElementById('loginForm');
+            var btn  = document.getElementById('submitBtn');
+            var text = document.getElementById('submitText');
+            if(!form || !btn) return;
+            form.addEventListener('submit', function(){
+                var u = (document.getElementById('username').value || '').trim();
+                var p = (document.getElementById('password').value || '').trim();
+                if(!u || !p) return;
+                btn.disabled = true;
+                var sp = document.createElement('span');
+                sp.className = 'spinner';
+                btn.insertBefore(sp, btn.firstChild);
+                if(text) text.textContent = 'جاري التحميل...';
+            });
+        })();
+
+        (function(){
+            function readCookie(name){
+                var m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.$?*|{}()[\]\/+^]/g, '\\$&') + '=([^;]*)'));
+                return m ? decodeURIComponent(m[1]) : '';
+            }
+            function makeId(){
+                try{
+                    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+                }catch(e){}
+                return 'dev-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+            }
+            try{
+                var did = (localStorage.getItem('erp_device_id') || '').trim();
+                if (!did) did = (readCookie('erp_device_id') || '').trim();
+                if (!did) {
+                    did = makeId();
+                    localStorage.setItem('erp_device_id', did);
+                } else {
+                    localStorage.setItem('erp_device_id', did);
+                }
+                document.cookie = 'erp_device_id=' + encodeURIComponent(did) + '; path=/; max-age=31536000; samesite=lax';
+            }catch(e){
+                try{
+                    var fallback = makeId();
+                    document.cookie = 'erp_device_id=' + encodeURIComponent(fallback) + '; path=/; max-age=31536000; samesite=lax';
+                }catch(err){}
+            }
+        })();
+    </script>
+</body>
+</html>
+

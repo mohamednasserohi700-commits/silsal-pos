@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-user-plus' %}
+{% block title %}{{ 'تعديل' if customer else 'إضافة' }} عميل{% endblock %}
+{% block page_title %}{{ 'تعديل' if customer else 'إضافة' }} عميل{% endblock %}
+{% block content %}
+<div class="card" style="max-width:600px;"><div class="card-body">
+    <form method="POST">
+        <div class="form-grid-2">
+            <div class="form-group"><label class="form-label">الكود</label><input type="text" name="code" class="form-control" value="{{ customer.code if customer else '' }}" placeholder="{% if not customer and suggested_code %}يُقترح: {{ suggested_code }} (اتركه فارغاً للتوليد التلقائي){% endif %}"></div>
+            <div class="form-group"><label class="form-label">الاسم *</label><input type="text" name="name" class="form-control" value="{{ customer.name if customer else '' }}" required></div>
+            <div class="form-group"><label class="form-label">الهاتف</label><input type="text" name="phone" class="form-control" value="{{ customer.phone if customer else '' }}"></div>
+            <div class="form-group"><label class="form-label">البريد الإلكتروني</label><input type="email" name="email" class="form-control" value="{{ customer.email if customer else '' }}"></div>
+            <div class="form-group"><label class="form-label">حد الائتمان</label><input type="number" name="credit_limit" class="form-control" value="{{ customer.credit_limit if customer else 0 }}" min="0" step="0.01"></div>
+        </div>
+        <div class="form-group"><label class="form-label">العنوان</label><textarea name="address" class="form-control">{{ customer.address if customer else '' }}</textarea></div>
+        <div style="display:flex;gap:10px;"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button><a href="{{ url_for('customers') }}" class="btn btn-outline">إلغاء</a></div>
+    </form>
+</div></div>
+{% endblock %}

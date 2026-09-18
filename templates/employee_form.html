@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-user-plus' %}
+{% block title %}{{ 'تعديل موظف' if emp else 'إضافة موظف' }}{% endblock %}
+{% block page_title %}{{ 'تعديل موظف' if emp else 'إضافة موظف جديد' }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:700px;"><div class="card-body">
+<form method="POST">
+    <div class="form-grid-2">
+        <div class="form-group"><label class="form-label">الكود</label><input type="text" name="code" class="form-control" value="{{ emp.code if emp else '' }}" placeholder="{% if not emp and suggested_code %}يُقترح: {{ suggested_code }} (فارغ = تلقائي){% endif %}"></div>
+        <div class="form-group"><label class="form-label">الاسم الكامل *</label><input type="text" name="name" class="form-control" value="{{ emp.name if emp else '' }}" required></div>
+        <div class="form-group"><label class="form-label">الهاتف</label><input type="text" name="phone" class="form-control" value="{{ emp.phone if emp else '' }}"></div>
+        <div class="form-group"><label class="form-label">البريد الإلكتروني</label><input type="email" name="email" class="form-control" value="{{ emp.email if emp else '' }}"></div>
+        <div class="form-group"><label class="form-label">الوظيفة</label><input type="text" name="position" class="form-control" value="{{ emp.position if emp else '' }}"></div>
+        <div class="form-group"><label class="form-label">القسم</label><input type="text" name="department" class="form-control" value="{{ emp.department if emp else '' }}"></div>
+        <div class="form-group"><label class="form-label">الفرع</label>
+            <select name="branch_id" class="form-control">
+                <option value="">— عام —</option>
+                {% for b in branches %}<option value="{{ b.id }}" {% if emp and emp.branch_id == b.id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-group"><label class="form-label">الراتب الأساسي</label><input type="number" name="salary" class="form-control" value="{{ emp.salary if emp else 0 }}" min="0" step="0.01"></div>
+        <div class="form-group"><label class="form-label">تاريخ التعيين</label><input type="date" name="hire_date" class="form-control" value="{{ emp.hire_date.isoformat() if emp and emp.hire_date else '' }}"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+        <a href="{{ url_for('employees') }}" class="btn btn-outline">إلغاء</a>
+    </div>
+</form>
+</div></div>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-undo' %}
+{% block title %}مرتجع مبيعات جديد{% endblock %}
+{% block page_title %}تسجيل مرتجع مبيعات{% endblock %}
+{% block breadcrumb %}مرتجعات المبيعات / تسجيل مرتجع{% endblock %}
+{% block extra_styles %}
+<style>
+    .return-page-shell .card { width: 100%; max-width: none !important; }
+    .return-page-shell .ret-row .qty,
+    .return-page-shell .ret-row .price,
+    .return-page-shell .ret-row .disc,
+    .return-page-shell .ret-row .xdisc { min-width: 96px !important; font-size: 15px !important; padding: 8px 6px !important; }
+    .return-page-shell .ret-row .sold-qty { min-width: 96px !important; font-size: 14px !important; font-weight: 700; }
+</style>
+{% endblock %}
+{% block content %}
+<script type="application/json" id="erpSalesReturnData">{{ sales_json | tojson }}</script>
+<div class="return-page-shell">
+<div class="card"><div class="card-body">
+<form method="POST" id="returnForm">
+    <div class="form-grid-2" style="margin-bottom:20px;">
+        <div class="form-group">
+            <label class="form-label">الفاتورة الأصلية *</label>
+            <select name="sale_id" class="form-control" required id="saleSelect" onchange="loadSaleItems()">
+                <option value="">اختر الفاتورة...</option>
+                {% for s in sales %}
+                <option value="{{ s.id }}">{{ s.invoice_number }} — {{ s.customer.name if s.customer else 'نقدي' }} — {{ s.date.strftime('%Y/%m/%d') }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">سبب الإرجاع</label>
+            <input type="text" name="reason" class="form-control" placeholder="سبب الإرجاع...">
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-list"></i> الأصناف المرتجعة</div>
+            <div class="erp-barcode-wrap">
+                <div class="erp-barcode-field">
+                    <i class="fas fa-barcode"></i>
+                    <input type="text" id="barcodeInput" class="form-control erp-barcode-input" placeholder="امسح/أدخل باركود" autocomplete="off">
+                </div>
+                <button type="button" onclick="addReturnRow()" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة صنف</button>
+            </div>
+        </div>
+        <div class="table-container"><table>
+            <thead><tr><th style="width:32%">الصنف</th><th style="width:11%">كمية البيع</th><th style="width:11%">الكمية المرتجعة</th><th style="width:11%">السعر</th><th style="width:9%">خصم بيع%</th><th style="width:9%">خصم إضافي%</th><th style="width:11%">الإجمالي</th><th style="width:3%"></th></tr></thead>
+            <tbody id="returnItems">
+                <tr class="ret-row">
+                    <td>
+                        <div style="position:relative">
+                            <input type="text" class="form-control product-search" placeholder="ابحث عن صنف أو اختر من الفاتورة..." autocomplete="off">
+                            <input type="hidden" name="product_id[]" class="pid">
+                            <div class="product-dropdown" style="display:none;"></div>
+                        </div>
+                    </td>
+                    <td><input type="text" class="form-control sold-qty" readonly style="min-width:70px;width:100%;font-size:13px;text-align:center;opacity:.85;font-size:12px;" title="كمية البيع في الفاتورة"></td>
+                    <td><input type="number" name="quantity[]" class="form-control qty" value="1" min="0.01" step="0.01" oninput="calcRow(this)" style="min-width:80px;width:100%;font-size:14px;text-align:center;padding:6px 4px;"></td>
+                    <td><input type="number" name="price[]" class="form-control price" value="0" min="0" step="0.01" oninput="calcRow(this)" style="min-width:80px;width:100%;font-size:14px;text-align:center;padding:6px 4px;"></td>
+                    <td><input type="number" name="discount[]" class="form-control disc" value="0" min="0" max="100" step="0.01" oninput="calcRow(this)" style="min-width:80px;width:100%;font-size:14px;text-align:center;padding:6px 4px;"></td>
+                    <td><input type="number" name="extra_discount[]" class="form-control xdisc" value="0" min="0" max="100" step="0.01" oninput="calcRow(this)" style="min-width:80px;width:100%;font-size:14px;text-align:center;padding:6px 4px;"></td>
+                    <td><input class="form-control row-total" readonly style="color:var(--danger);font-weight:700;"></td>
+                    <td><button type="button" onclick="removeRow(this)" class="btn btn-danger btn-xs"><i class="fas fa-trash"></i></button></td>
+                </tr>
+            </tbody>
+        </table></div>
+        <div id="barcodeStatus" class="erp-barcode-status"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <a href="{{ url_for('sale_returns') }}" class="btn btn-outline">إلغاء</a>
+        <button type="submit" class="btn btn-danger"><i class="fas fa-undo"></i> تسجيل المرتجع</button>
+    </div>
+</form>
+</div></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/product_line_picker.js') }}"></script>
+<script src="{{ url_for('static', filename='js/invoice_barcode.js') }}"></script>
+<script>
+var SALES_RETURN_META = [];
+try {
+    SALES_RETURN_META = JSON.parse(document.getElementById('erpSalesReturnData').textContent || '[]');
+} catch (e) { SALES_RETURN_META = []; }
+
+var returnRowBlueprint = null;
+var pickerOpts = { getWarehouseId: function(){ return ''; }, requireWarehouse: false, useCost: false };
+
+function bindPickerRow(row) {
+    var inp = row.querySelector('.product-search');
+    if (inp) ErpProductLinePicker.bind(inp, pickerOpts);
+}
+
+function calcRow(input) {
+    var row = input.closest('tr');
+    var qty = parseFloat(row.querySelector('.qty').value) || 0;
+    var price = parseFloat(row.querySelector('.price').value) || 0;
+    var disc = parseFloat(row.querySelector('.disc').value) || 0;
+    var xdisc = parseFloat(row.querySelector('.xdisc').value) || 0;
+    var base = qty * price * (1 - disc / 100);
+    row.querySelector('.row-total').value = (base * (1 - xdisc / 100)).toFixed(2);
+}
+
+function loadSaleItems() {
+    if (!returnRowBlueprint) return;
+    var sel = document.getElementById('saleSelect');
+    var id = sel.value;
+    var meta = SALES_RETURN_META.find(function(s) { return String(s.id) === String(id); });
+    var tbody = document.getElementById('returnItems');
+    tbody.innerHTML = '';
+    if (!id || !meta || !meta.items || !meta.items.length) {
+        tbody.appendChild(returnRowBlueprint.cloneNode(true));
+        bindPickerRow(tbody.querySelector('.ret-row'));
+        return;
+    }
+    meta.items.forEach(function(it) {
+        var row = returnRowBlueprint.cloneNode(true);
+        row.querySelector('.pid').value = it.product_id;
+        var label = it.name + (it.code ? ' — ' + it.code : '');
+        row.querySelector('.product-search').value = label;
+        row.querySelector('.price').value = it.price;
+        row.querySelector('.disc').value = (it.discount != null ? it.discount : 0);
+        row.querySelector('.xdisc').value = 0;
+        var sq = row.querySelector('.sold-qty');
+        if (sq) sq.value = (it.quantity != null ? it.quantity : '');
+        row.querySelector('.qty').value = (it.quantity != null ? it.quantity : 1);
+        tbody.appendChild(row);
+        calcRow(row.querySelector('.qty'));
+        bindPickerRow(row);
+    });
+}
+
+function addReturnRow() {
+    if (!returnRowBlueprint) return;
+    var tbody = document.getElementById('returnItems');
+    var row = returnRowBlueprint.cloneNode(true);
+    row.querySelector('.pid').value = '';
+    row.querySelector('.product-search').value = '';
+    row.querySelector('.row-total').value = '';
+    row.querySelector('.qty').value = '1';
+    row.querySelector('.price').value = '0';
+    row.querySelector('.disc').value = '0';
+    row.querySelector('.xdisc').value = '0';
+    var sq = row.querySelector('.sold-qty');
+    if (sq) sq.value = '';
+    var dd = row.querySelector('.product-dropdown');
+    if (dd) dd.style.display = 'none';
+    tbody.appendChild(row);
+    bindPickerRow(row);
+}
+
+function removeRow(btn) {
+    if (document.querySelectorAll('.ret-row').length > 1) btn.closest('tr').remove();
+}
+
+(function initReturnForm() {
+    var first = document.querySelector('#returnItems .ret-row');
+    if (first) returnRowBlueprint = first.cloneNode(true);
+    document.querySelectorAll('#returnItems .product-search').forEach(function(inp) {
+        ErpProductLinePicker.bind(inp, pickerOpts);
+    });
+})();
+
+ErpInvoiceBarcode.bind('#barcodeInput', {
+    itemsBodyId: 'returnItems',
+    rowSelector: 'tr.ret-row',
+    statusSelector: '#barcodeStatus',
+    getWarehouseId: function () { return ''; },
+    requireWarehouse: false,
+    useCost: false,
+    autoFocus: true,
+    addRow: function () { if (typeof window.addReturnRow === 'function') window.addReturnRow(); }
+});
+</script>
+{% endblock %}

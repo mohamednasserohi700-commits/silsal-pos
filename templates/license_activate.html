@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-key' %}
+{% block title %}تفعيل الاشتراك{% endblock %}
+{% block page_title %}تفعيل الترخيص{% endblock %}
+{% block breadcrumb %}أدخل سريال الاشتراك{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:520px;margin:0 auto;">
+    <div class="card-header">
+        <div class="card-title"><i class="fas fa-shield-alt"></i> تفعيل النظام</div>
+    </div>
+    <div class="card-body">
+        {% if license_expiry_message_text %}
+        <div class="alert alert-warning" style="margin-bottom:16px;font-size:13px;line-height:1.6;white-space:pre-wrap;">{{ license_expiry_message_text }}</div>
+        {% endif %}
+        <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:18px;">
+            هذا التثبيت يحتاج سريالاً صالحاً. الصق السريال كما استلمته (يُسمح بالشرطات أو بدونها).
+        </p>
+        <form method="POST">
+            <div class="form-group">
+                <label class="form-label">سريال الاشتراك</label>
+                <input type="text" name="serial" class="form-control" placeholder="XXXX-XXXX-XXXX" required autocomplete="off" style="font-family:monospace;letter-spacing:0.05em;">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fas fa-check"></i> تفعيل</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

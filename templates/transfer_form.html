@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-plus-circle' %}
+{% block title %}طلب تحويل جديد{% endblock %}
+{% block page_title %}طلب تحويل مخزن جديد{% endblock %}
+{% block breadcrumb %}التحويلات / طلب جديد{% endblock %}
+
+{% block content %}
+{% if not approver_choices %}
+<div class="alert alert-error" style="margin-bottom:16px;">
+    لا يوجد مستخدم آخر مخوّل بالموافقة على التحويلات. أضف مستخدمًا بدور مدير/مشرف أو منح صلاحية «الموافقة على تحويلات المخازن» لمستخدم آخر غيرك.
+</div>
+{% endif %}
+<div class="card">
+    <div class="card-header">
+        <div class="card-title"><i class="fas fa-exchange-alt"></i> بيانات طلب التحويل</div>
+    </div>
+    <div class="card-body">
+        <form method="POST" id="transferForm">
+            <div class="form-grid" style="margin-bottom: 20px;">
+                <div class="form-group">
+                    <label class="form-label">من مخزن *</label>
+                    <select name="from_warehouse_id" class="form-control" required id="fromWh">
+                        <option value="">اختر المخزن...</option>
+                        {% for wh in warehouses %}
+                        <option value="{{ wh.id }}">{{ wh.name }} {% if wh.branch %}({{ wh.branch.name }}){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">إلى مخزن *</label>
+                    <select name="to_warehouse_id" class="form-control" required>
+                        <option value="">اختر المخزن...</option>
+                        {% for wh in warehouses %}
+                        <option value="{{ wh.id }}">{{ wh.name }} {% if wh.branch %}({{ wh.branch.name }}){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">المستخدم المكلَّف بالموافقة *</label>
+                    <select name="approver_user_id" class="form-control" required>
+                        <option value="">اختر من يوافق على الطلب...</option>
+                        {% for u in approver_choices %}
+                        <option value="{{ u.id }}">{{ u.full_name or u.username }}</option>
+                        {% endfor %}
+                    </select>
+                    <small style="color:var(--text-muted);font-size:11px;display:block;margin-top:6px;">لا يمكن لصاحب الطلب الموافقة أو الرفض على طلبه.</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">ملاحظات</label>
+                    <input type="text" name="notes" class="form-control" placeholder="ملاحظات اختيارية...">
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-list"></i> الأصناف المراد تحويلها</div>
+                    <button type="button" onclick="addRow()" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة صنف</button>
+                </div>
+                <div class="table-container">
+                    <table class="items-table" id="itemsTable">
+                        <thead><tr>
+                            <th style="width:40%">الصنف</th>
+                            <th style="width:25%">الكمية المتاحة</th>
+                            <th style="width:25%">الكمية للتحويل</th>
+                            <th style="width:10%">حذف</th>
+                        </tr></thead>
+                        <tbody id="itemsBody">
+                            <tr class="item-row" id="row_0">
+                                <td>
+                                    <div style="position:relative">
+                                        <input type="text" class="form-control product-search" placeholder="ابحث عن صنف..." autocomplete="off" data-row="0">
+                                        <input type="hidden" name="product_id[]" class="product-id">
+                                        <div class="product-dropdown" style="display:none; position:absolute; top:100%; right:0; left:0; background:var(--secondary); border:1px solid var(--border); border-radius:8px; z-index:500; max-height:200px; overflow-y:auto;"></div>
+                                    </div>
+                                </td>
+                                <td><input type="text" class="form-control avail-qty" readonly placeholder="0" style="color:var(--success)"></td>
+                                <td><input type="number" name="quantity[]" class="form-control" min="0.01" step="0.01" placeholder="0" required></td>
+                                <td><button type="button" onclick="removeRow(this)" class="btn btn-danger btn-xs"><i class="fas fa-trash"></i></button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div style="display:flex; gap: 12px; justify-content: flex-end;">
+                <a href="{{ url_for('transfers') }}" class="btn btn-outline">إلغاء</a>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> إرسال طلب التحويل</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/product_line_picker.js') }}"></script>
+<script>
+let rowCount = 1;
+function pickerOpts() {
+    return {
+        getWarehouseId: function () { return document.getElementById('fromWh').value; },
+        requireWarehouse: true,
+        useCost: false
+    };
+}
+function addRow() {
+    const idx = rowCount++;
+    const tbody = document.getElementById('itemsBody');
+    const row = document.createElement('tr');
+    row.className = 'item-row';
+    row.id = 'row_' + idx;
+    row.innerHTML = `
+        <td>
+            <div style="position:relative">
+                <input type="text" class="form-control product-search" placeholder="ابحث أو اختر صنفاً..." autocomplete="off" data-row="${idx}">
+                <input type="hidden" name="product_id[]" class="product-id">
+                <div class="product-dropdown" style="display:none;"></div>
+            </div>
+        </td>
+        <td><input type="text" class="form-control avail-qty" readonly placeholder="0" style="color:var(--success)"></td>
+        <td><input type="number" name="quantity[]" class="form-control" min="0.01" step="0.01" placeholder="0" required></td>
+        <td><button type="button" onclick="removeRow(this)" class="btn btn-danger btn-xs"><i class="fas fa-trash"></i></button></td>
+    `;
+    tbody.appendChild(row);
+    ErpProductLinePicker.bind(row.querySelector('.product-search'), pickerOpts());
+}
+
+function removeRow(btn) {
+    const rows = document.querySelectorAll('.item-row');
+    if(rows.length > 1) btn.closest('tr').remove();
+}
+
+ErpProductLinePicker.bindAll('.product-search', pickerOpts());
+</script>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% set paper = print_paper_size|default('A4') %}
+{% set is_pos = (print_mode|default('normal') == 'pos') or (paper in ['80mm', '58mm']) %}
+{% set pos_w = '58mm' if paper == '58mm' else '80mm' %}
+{% set pos_inner = '52mm' if paper == '58mm' else '72mm' %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>مرتجع مشتريات {{ ret.invoice_number }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Cairo, sans-serif; padding: 24px; font-size: 13px; color: #111; }
+        h1 { font-size: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: right; }
+        th { background: #1e3a5f; color: #fff; }
+        .total { font-size: 18px; font-weight: 800; margin-top: 20px; }
+        .footer { margin-top: 28px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 14px; }
+
+        /* ===== POS thermal receipt (80mm / 58mm) ===== */
+        body.pos {
+            font-family: Cairo, Arial, sans-serif;
+            padding: 2mm 1.5mm;
+            font-size: 11px;
+            width: {{ pos_inner }};
+            margin: 0 auto;
+        }
+        body.pos .sheet { max-width: 100%; width: 100%; }
+        body.pos h1 { font-size: 14px; text-align: center; margin-bottom: 4px; }
+        body.pos p { font-size: 10px; text-align: center; margin-bottom: 6px; }
+        body.pos table { table-layout: fixed; margin-top: 6px; }
+        body.pos table th, body.pos table td { border: none; border-bottom: 1px dashed #ccc; padding: 4px 3px; font-size: 9.5px; overflow-wrap: break-word; word-break: normal; }
+        /* column widths tuned so the product-name column gets the room it needs and doesn't break mid-word */
+        body.pos table th:nth-child(1), body.pos table td:nth-child(1) { width: 26%; text-align: right; }
+        body.pos table th:nth-child(2), body.pos table td:nth-child(2) { width: 15%; }
+        body.pos table th:nth-child(3), body.pos table td:nth-child(3) { width: 15%; }
+        body.pos table th:nth-child(4), body.pos table td:nth-child(4) { width: 14%; }
+        body.pos table th:nth-child(5), body.pos table td:nth-child(5) { width: 14%; }
+        body.pos table th:nth-child(6), body.pos table td:nth-child(6) { width: 16%; }
+        body.pos table th { background: none; color: #000; font-weight: 700; border-bottom: 1px dashed #000; border-top: 1px dashed #000; }
+        body.pos .total { font-size: 14px; text-align: center; margin-top: 10px; border-top: 1px dashed #000; padding-top: 6px; }
+        body.pos .footer { font-size: 9px; margin-top: 8px; padding-top: 6px; }
+        body.pos.pos58 { font-size: 10px; }
+        body.pos.pos58 table th, body.pos.pos58 table td { font-size: 8px; padding: 3px 2px; }
+
+        @media print {
+            .no-print { display: none; }
+            {% if is_pos %}
+            @page { size: {{ pos_w }} 297mm; margin: 0; }
+            html, body { width: {{ pos_inner }} !important; margin: 0 auto !important; padding: 0 !important; background: #fff !important; }
+            {% else %}
+            @page { size: A4; margin: 8mm; }
+            {% endif %}
+        }
+    </style>
+</head>
+<body class="{% if is_pos %}pos{% endif %} {% if paper == '58mm' %}pos58{% endif %}">
+    <div class="sheet">
+    <div class="no-print" style="margin-bottom:16px;"><button onclick="window.print()">طباعة</button></div>
+    <h1>مرتجع مشتريات — {{ ret.invoice_number }}</h1>
+    <p>فاتورة شراء: {{ ret.purchase.invoice_number if ret.purchase else '—' }} — {{ ret.date.strftime('%Y/%m/%d') }}</p>
+    <table>
+        <thead><tr><th>صنف</th><th>كمية مرتجعة</th><th>سعر</th><th>خصم %</th><th>خصم إضافي %</th><th>إجمالي</th></tr></thead>
+        <tbody>
+            {% for it in ret.items %}
+            <tr>
+                <td>{{ it.product.name if it.product else '—' }}</td>
+                <td>{{ it.quantity }}</td>
+                <td>{{ "{:,.4f}".format(it.price) }}</td>
+                <td>{{ "{:,.2f}".format(it.discount or 0) }}</td>
+                <td>{{ "{:,.2f}".format(it.extra_discount or 0) }}</td>
+                <td>{{ "{:,.2f}".format(it.total) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="total">الإجمالي: {{ "{:,.2f}".format(ret.total) }}</div>
+    <div class="footer">
+        <p>{{ app_brand_title }}</p>
+    </div>
+    </div>
+<script>
+(function () {
+    function fitPosReceiptPage() {
+        if (!document.body || !document.body.classList.contains('pos')) return;
+        var el = document.querySelector('.invoice') || document.querySelector('.sheet');
+        if (!el) return;
+        var px = Math.max(el.scrollHeight, el.offsetHeight, el.getBoundingClientRect().height);
+        var mm = Math.ceil((px * 25.4) / 96) + 6;
+        if (mm < 60) mm = 60;
+        if (mm > 1800) mm = 1800;
+        var w = document.body.classList.contains('pos58') ? '58mm' : '80mm';
+        var old = document.getElementById('pos-page-fit');
+        if (old) old.remove();
+        var st = document.createElement('style');
+        st.id = 'pos-page-fit';
+        st.textContent = '@page{size:' + w + ' ' + mm + 'mm;margin:0}';
+        document.head.appendChild(st);
+    }
+    // Compute the receipt page height immediately (element already in the DOM at this point),
+    // then refine again after full load (fonts/images) and right before the browser prints.
+    fitPosReceiptPage();
+    window.addEventListener('load', function () {
+        fitPosReceiptPage();
+        setTimeout(fitPosReceiptPage, 200);
+    });
+    window.addEventListener('beforeprint', fitPosReceiptPage);
+
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('autoprint') === '1' || document.referrer.includes('/purchase_return/') || document.referrer.includes('/purchase-return/')) {
+        window.addEventListener('load', function () {
+            // Make sure the page-fit style is applied before triggering print.
+            fitPosReceiptPage();
+            window.print();
+        });
+    }
+})();
+</script>
+</body>
+</html>

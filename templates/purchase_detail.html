@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-file-invoice' %}
+{% block title %}فاتورة شراء {{ purchase.invoice_number }}{% endblock %}
+{% block page_title %}فاتورة شراء {{ purchase.invoice_number }}{% if purchase_has_return %} <span class="badge badge-warning" style="vertical-align:middle;">تم الارتجاع</span>{% endif %}{% endblock %}
+{% block breadcrumb %}المشتريات / تفاصيل الفاتورة{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('purchase_print', id=purchase.id) }}" target="_blank" class="btn btn-outline"><i class="fas fa-print"></i> طباعة</a>
+{% if can('sales_purchases_edit') and not purchase_has_return %}
+<a href="{{ url_for('edit_purchase', id=purchase.id) }}" class="btn btn-outline"><i class="fas fa-edit"></i> تعديل</a>
+{% endif %}
+<a href="{{ url_for('purchases') }}" class="btn btn-outline"><i class="fas fa-arrow-right"></i> رجوع</a>
+{% endblock %}
+{% block content %}
+{% if purchase_has_return %}
+<div class="alert alert-warning" style="margin-bottom:18px;"><i class="fas fa-undo-alt"></i> تم تسجيل مرتجع على هذه الفاتورة.</div>
+{% endif %}
+<div class="invoice-box">
+    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:28px;">
+        <div>
+            <div style="font-size:28px;font-weight:900;color:var(--info);">{{ app_brand_title }}</div>
+            <div style="color:var(--text-muted);font-size:13px;">نظام إدارة الأعمال</div>
+        </div>
+        <div style="text-align:left;">
+            <div style="font-size:22px;font-weight:800;">فاتورة مشتريات</div>
+            <div style="color:var(--info);font-weight:700;font-size:18px;">{{ purchase.invoice_number }}</div>
+            <div style="color:var(--text-muted);">{{ purchase.date.strftime('%Y/%m/%d %H:%M') }}</div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;">
+        <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:16px;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;font-weight:600;">المورد</div>
+            <div style="font-size:16px;font-weight:700;">{{ purchase.supplier.name if purchase.supplier else '—' }}</div>
+            {% if purchase.supplier %}<div style="color:var(--text-muted);font-size:13px;margin-top:4px;">{{ purchase.supplier.phone or '' }}</div>{% endif %}
+        </div>
+        <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:16px;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;font-weight:600;">المخزن / المحرر</div>
+            <div style="font-weight:700;">{{ purchase.warehouse.name if purchase.warehouse else '—' }}</div>
+            <div style="color:var(--text-muted);font-size:13px;">{{ purchase.user.full_name if purchase.user else '' }}</div>
+        </div>
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <thead>
+            <tr style="background:rgba(59,130,246,0.1);">
+                <th style="padding:12px 16px;text-align:right;font-size:12px;color:var(--text-muted);">#</th>
+                <th style="padding:12px 16px;text-align:right;font-size:12px;color:var(--text-muted);">الصنف</th>
+                <th style="padding:12px 16px;text-align:right;font-size:12px;color:var(--text-muted);">الكمية</th>
+                <th style="padding:12px 16px;text-align:right;font-size:12px;color:var(--text-muted);">سعر الشراء</th>
+                <th style="padding:12px 16px;text-align:right;font-size:12px;color:var(--text-muted);">الإجمالي</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in purchase.items %}
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:12px 16px;color:var(--text-muted);">{{ loop.index }}</td>
+                <td style="padding:12px 16px;font-weight:600;">{{ item.product.name }}</td>
+                <td style="padding:12px 16px;">{{ item.quantity }} {{ item.product.unit }}</td>
+                <td style="padding:12px 16px;">{{ "{:,.2f}".format(item.price) }}</td>
+                <td style="padding:12px 16px;font-weight:700;color:var(--info);">{{ "{:,.2f}".format(item.total) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="display:flex;justify-content:flex-end;">
+        <div style="width:280px;background:rgba(255,255,255,0.03);border-radius:12px;padding:20px;">
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--text-muted);">المجموع الفرعي</span><span>{{ "{:,.2f}".format(purchase.subtotal) }}</span>
+            </div>
+            {% if purchase.discount > 0 %}
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--text-muted);">الخصم</span><span style="color:var(--danger);">- {{ "{:,.2f}".format(purchase.discount) }}</span>
+            </div>
+            {% endif %}
+            {% if purchase.tax > 0 %}
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--text-muted);">ضريبة القيمة المضافة</span><span>{{ "{:,.2f}".format(purchase.tax) }}</span>
+            </div>
+            {% endif %}
+            {% if purchase.withholding_tax and purchase.withholding_tax > 0 %}
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--text-muted);">تحصيل / خصم من المورد (مثلاً 1%)</span><span style="color:var(--warning);">- {{ "{:,.2f}".format(purchase.withholding_tax) }}</span>
+            </div>
+            {% endif %}
+            <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+                <span style="font-size:16px;font-weight:700;">الإجمالي</span>
+                <span style="font-size:20px;font-weight:800;color:var(--info);">{{ "{:,.2f}".format(purchase.total) }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--success);">المدفوع</span>
+                <span style="color:var(--success);font-weight:700;">{{ "{:,.2f}".format(purchase.paid) }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:8px 0;">
+                <span style="color:var(--danger);">المتبقي</span>
+                <span style="color:var(--danger);font-weight:700;">{{ "{:,.2f}".format(purchase.remaining) }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if actual_remaining is not defined %}{% set actual_remaining = purchase.remaining %}{% endif %}
+{% if actual_remaining > 0 %}
+<div class="card" style="margin-top: 20px; border-color: rgba(16,185,129,.3);">
+    <div class="card-header"><div class="card-title" style="color:var(--success);"><i class="fas fa-money-bill-wave"></i> تسجيل دفعة على الفاتورة</div></div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('purchase_payment', id=purchase.id) }}" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="margin:0;flex:1;min-width:200px;">
+                <label class="form-label">المبلغ (المتبقي فعلياً: {{ "{:,.2f}".format(actual_remaining) }})</label>
+                <input type="number" name="amount" class="form-control" step="0.01" min="0.01" max="{{ actual_remaining }}" value="{{ actual_remaining }}" required>
+            </div>
+            <button type="submit" class="btn btn-success" style="padding: 9px 20px;"><i class="fas fa-check"></i> تسجيل الدفعة</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if edit_logs %}
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header"><div class="card-title"><i class="fas fa-history"></i> سجل تعديلات الفاتورة</div></div>
+    <div class="card-body" style="padding:0;">
+        <table class="table" style="margin:0;">
+            <thead><tr><th>التاريخ والوقت</th><th>المستخدم</th><th>التغييرات</th></tr></thead>
+            <tbody>
+            {% for log in edit_logs %}
+                <tr>
+                    <td style="white-space:nowrap;">{{ log.date.strftime('%Y/%m/%d %H:%M') }}</td>
+                    <td style="white-space:nowrap;">{{ log.user.username if log.user else '-' }}</td>
+                    <td>{{ log.summary }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    var params = new URLSearchParams(window.location.search);
+    var shouldPrint = {% if auto_print_requested %}true{% else %}false{% endif %} || params.get('autoprint') === '1' || params.get('new') === '1';
+    if(shouldPrint){
+        var copies = {{ print_auto_copies|default(1) }};
+        var paper = '{{ print_paper_size|default("A4") }}';
+        var mode = '{{ print_mode|default("normal") }}';
+        var delay = 350;
+        for (var i = 0; i < copies; i++) {
+            (function(idx){
+                setTimeout(function () {
+                    window.open('{{ url_for("purchase_print", id=purchase.id) }}?autoprint=1&paper=' + encodeURIComponent(paper) + '&mode=' + encodeURIComponent(mode), '_blank');
+                }, idx * delay);
+            })(i);
+        }
+    }
+})();
+</script>
+{% endblock %}

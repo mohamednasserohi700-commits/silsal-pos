@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-tags' %}
+{% block title %}التصنيفات{% endblock %}
+{% block page_title %}إدارة التصنيفات{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start;">
+<div class="card"><div class="table-container"><table>
+    <thead><tr><th>اسم التصنيف</th><th>التصنيف الأب</th><th>عدد الأصناف</th><th>إجراءات</th></tr></thead>
+    <tbody>
+        {% for c in cats %}
+        <tr>
+            <td style="font-weight:600;">{{ c.name }}</td>
+            <td style="color:var(--text-muted);">{{ c.parent.name if c.parent else '—' }}</td>
+            <td>{{ c.products|length }}</td>
+            <td style="white-space:nowrap;">
+                <a href="{{ url_for('edit_category', id=c.id) }}" class="btn btn-outline btn-xs" title="تعديل"><i class="fas fa-edit"></i></a>
+                {% if can('record_delete') %}
+                <form method="POST" action="{{ url_for('delete_category', id=c.id) }}" style="display:inline;" onsubmit="return confirm('حذف هذا التصنيف؟');">
+                    <button type="submit" class="btn btn-danger btn-xs" title="حذف"><i class="fas fa-trash"></i></button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4"><div class="empty-state"><i class="fas fa-tags"></i><h3>لا توجد تصنيفات</h3></div></td></tr>
+        {% endfor %}
+    </tbody>
+</table></div></div>
+<div class="card">
+    <div class="card-header"><div class="card-title"><i class="fas fa-plus"></i> إضافة تصنيف</div></div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('add_category') }}">
+            <div class="form-group"><label class="form-label">اسم التصنيف *</label><input type="text" name="name" class="form-control" required></div>
+            <div class="form-group">
+                <label class="form-label">تصنيف أب (اختياري)</label>
+                <select name="parent_id" class="form-control">
+                    <option value="">— تصنيف رئيسي —</option>
+                    {% for c in cats %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> إضافة</button>
+        </form>
+    </div>
+</div>
+</div>
+{% endblock %}

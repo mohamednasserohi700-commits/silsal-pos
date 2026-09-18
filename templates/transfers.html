@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-exchange-alt' %}
+{% block title %}طلبات تحويل المخازن{% endblock %}
+{% block page_title %}تحويلات المخازن{% endblock %}
+{% block breadcrumb %}إدارة التحويلات بين المخازن{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('new_transfer') }}" class="btn btn-primary"><i class="fas fa-plus"></i> طلب تحويل جديد</a>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+    <a href="{{ url_for('transfers') }}" class="btn {{ 'btn-primary' if not status else 'btn-outline' }}">الكل</a>
+    <a href="{{ url_for('transfers', status='pending') }}" class="btn {{ 'btn-primary' if status == 'pending' else 'btn-outline' }}">
+        <i class="fas fa-clock"></i> معلقة
+    </a>
+    <a href="{{ url_for('transfers', status='approved') }}" class="btn {{ 'btn-primary' if status == 'approved' else 'btn-outline' }}">
+        <i class="fas fa-check-circle"></i> موافق عليها
+    </a>
+    <a href="{{ url_for('transfers', status='rejected') }}" class="btn {{ 'btn-primary' if status == 'rejected' else 'btn-outline' }}">
+        <i class="fas fa-times-circle"></i> مرفوضة
+    </a>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead><tr>
+                <th>رقم الطلب</th><th>من مخزن</th><th>إلى مخزن</th>
+                <th>طالب التحويل</th><th>تاريخ الطلب</th>
+                <th>الحالة</th><th>الإجراءات</th>
+            </tr></thead>
+            <tbody>
+                {% for t in transfers %}
+                <tr>
+                    <td><a href="{{ url_for('transfer_detail', id=t.id) }}" style="color: var(--accent); text-decoration: none; font-weight: 600;">{{ t.request_number }}</a></td>
+                    <td>{{ t.from_warehouse.name }}</td>
+                    <td>{{ t.to_warehouse.name }}</td>
+                    <td>{{ t.requester.full_name if t.requester else '—' }}</td>
+                    <td>{{ t.date_requested.strftime('%Y/%m/%d %H:%M') }}</td>
+                    <td>
+                        {% if t.status == 'pending' %}
+                        <span class="badge badge-warning pulse"><i class="fas fa-clock"></i> معلق</span>
+                        {% elif t.status == 'approved' %}
+                        <span class="badge badge-success"><i class="fas fa-check"></i> موافق عليه</span>
+                        {% else %}
+                        <span class="badge badge-danger"><i class="fas fa-times"></i> مرفوض</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('transfer_detail', id=t.id) }}" class="btn btn-outline btn-xs"><i class="fas fa-eye"></i></a>
+                        {% if t.status == 'pending' and transfer_can_act.get(t.id) %}
+                        <button onclick="approveTransfer({{ t.id }})" class="btn btn-success btn-xs"><i class="fas fa-check"></i></button>
+                        <button onclick="openRejectModal({{ t.id }})" class="btn btn-danger btn-xs"><i class="fas fa-times"></i></button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7">
+                    <div class="empty-state">
+                        <i class="fas fa-exchange-alt"></i>
+                        <h3>لا توجد طلبات تحويل</h3>
+                    </div>
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal-overlay" id="rejectModal">
+    <div class="modal">
+        <div class="modal-title"><i class="fas fa-times-circle"></i> رفض طلب التحويل</div>
+        <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 13.5px;">يرجى ذكر سبب رفض طلب التحويل</p>
+        <form id="rejectForm" method="POST">
+            <div class="form-group">
+                <label class="form-label">سبب الرفض *</label>
+                <textarea name="reason" class="form-control" rows="4" placeholder="اكتب سبب الرفض هنا..." required></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="button" onclick="closeModal()" class="btn btn-outline">إلغاء</button>
+                <button type="submit" class="btn btn-danger"><i class="fas fa-times-circle"></i> تأكيد الرفض</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<form id="approveForm" method="POST" style="display:none;">
+    <input type="hidden" name="_method" value="POST">
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function approveTransfer(id) {
+    if(confirm('هل تريد الموافقة على هذا الطلب وتنفيذ التحويل؟')) {
+        const form = document.getElementById('approveForm');
+        form.action = `/transfers/${id}/approve`;
+        form.submit();
+    }
+}
+function openRejectModal(id) {
+    document.getElementById('rejectForm').action = `/transfers/${id}/reject`;
+    document.getElementById('rejectModal').classList.add('open');
+}
+function closeModal() {
+    document.getElementById('rejectModal').classList.remove('open');
+}
+document.getElementById('rejectModal').addEventListener('click', function(e) {
+    if(e.target === this) closeModal();
+});
+</script>
+{% endblock %}

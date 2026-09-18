@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-sliders-h' %}
+{% block title %}إعدادات النظام{% endblock %}
+{% block page_title %}إعدادات النظام{% endblock %}
+{% block breadcrumb %}الإعدادات / العام{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:760px;">
+    <div class="card-header"><div class="card-title"><i class="fas fa-building"></i> إعدادات النظام والهوية</div></div>
+    <div class="card-body">
+        {% if branding_branch %}
+        <div class="alert alert-info" style="margin-bottom:16px;font-size:13px;">
+            <i class="fas fa-code-branch"></i> تُحفظ هذه الإعدادات لفرعك: <strong>{{ branding_branch.name }}</strong>. مستخدمو الفروع الآخرون يرون هوية فرعهم عند تسجيل الدخول.
+        </div>
+        {% else %}
+        <div class="alert alert-warning" style="margin-bottom:16px;font-size:13px;">
+            حسابك غير مرتبط بفرع — تُحفظ الإعدادات كـ <strong>عامة</strong> لجميع من لا تتوفر لهم هوية فرع.
+        </div>
+        {% endif %}
+        <form method="POST">
+            <div class="form-group">
+                <label class="form-label">اسم المؤسسة / الشركة</label>
+                <input type="text" name="company_name" class="form-control" value="{{ settings.get('company_name','') }}" placeholder="System Makers">
+            </div>
+            <div class="form-group">
+                <label class="form-label">اسم البرنامج (العنوان الرئيسي)</label>
+                <input type="text" name="app_title" class="form-control" value="{{ settings.get('app_title','') }}" placeholder="Silsal POS">
+            </div>
+            <div class="form-group">
+                <label class="form-label">وصف قصير تحت العنوان</label>
+                <input type="text" name="app_subtitle" class="form-control" value="{{ settings.get('app_subtitle','') }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">تسمية النظام (نسخة / إصدار)</label>
+                <input type="text" name="program_label" class="form-control" value="{{ settings.get('program_label','') }}" placeholder="Silsal POS">
+            </div>
+            <div class="form-group">
+                <label class="form-label">عرض المحتوى — الافتراضي على السيرفر</label>
+                <select name="layout_max_width" class="form-control">
+                    <option value="430px" {{ 'selected' if settings.get('layout_max_width','1400px') == '430px' }}>430px — عرض الهاتف</option>
+                    {% for w in ['100%', '1920px', '1600px', '1400px', '1200px', '1024px'] %}
+                    <option value="{{ w }}" {{ 'selected' if settings.get('layout_max_width','1400px') == w }}>{{ w }} — عرض كامل أو محدود</option>
+                    {% endfor %}
+                </select>
+                <small style="color:var(--text-muted);font-size:11px;display:block;margin-top:6px;">
+                    <strong>كل جهاز له ضبطه الخاص:</strong> عرض الصفحة يُختار من الشريط العلوي (بجانب الوضع الفاتح/الداكن)، ويُحفظ في المتصفح على هذا الجهاز فقط — لا يرتبط بحساب المستخدم.
+                    القيمة هنا هي <strong>الافتراضي عند أول زيارة</strong> لأي جهاز لم يضبط عرضاً محلياً بعد. يمكنك اختيار <strong>عرض الهاتف</strong> لمحاكاة شاشة الموبايل داخل الكمبيوتر.
+                </small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">حجم الخط في الواجهة</label>
+                <select name="ui_font_percent" class="form-control">
+                    {% for p in range(10, 101, 10) %}
+                    {% set v = p|string %}
+                    <option value="{{ v }}" {{ 'selected' if settings.get('ui_font_percent','100') == v }}>{{ v }}%</option>
+                    {% endfor %}
+                </select>
+                <small style="color:var(--text-muted);font-size:11px;display:block;margin-top:6px;">
+                    يطبّق على نصوص الواجهة الأساسية مثل القائمة الجانبية والعناوين. القيمة الافتراضية 100%.
+                </small>
+            </div>
+
+            <hr style="border:0;border-top:1px solid var(--border);margin:16px 0 14px;">
+            <div style="font-weight:800;font-size:14px;margin-bottom:10px;"><i class="fas fa-print" style="color:var(--accent);margin-left:6px;"></i> إعدادات الطباعة</div>
+
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">نوع الطابعة</label>
+                    <select name="print_mode" class="form-control">
+                        <option value="normal" {{ 'selected' if settings.get('print_mode','normal') == 'normal' }}>طابعة عادية</option>
+                        <option value="pos" {{ 'selected' if settings.get('print_mode','normal') == 'pos' }}>طابعة POS</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">حجم ورق الطباعة</label>
+                    <select name="print_paper_size" class="form-control">
+                        <option value="A4" {{ 'selected' if settings.get('print_paper_size','A4') == 'A4' }}>A4</option>
+                        <option value="80mm" {{ 'selected' if settings.get('print_paper_size','A4') == '80mm' }}>80mm (POS)</option>
+                        <option value="58mm" {{ 'selected' if settings.get('print_paper_size','A4') == '58mm' }}>58mm (POS)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">عدد النسخ التلقائية</label>
+                <input type="number" min="1" max="10" name="print_auto_copies" class="form-control" value="{{ settings.get('print_auto_copies','1') }}">
+                <small style="color:var(--text-muted);font-size:11px;display:block;margin-top:6px;">
+                    يطبق عند تفعيل الطباعة التلقائية بعد الحفظ.
+                </small>
+            </div>
+
+            <div class="form-grid-2">
+                <label style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
+                    <input type="checkbox" name="print_auto_sale" value="1" {{ 'checked' if (settings.get('print_auto_sale','0') in ['1','true','on','yes']) else '' }}>
+                    <span>طباعة تلقائية بعد حفظ فاتورة المبيعات</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
+                    <input type="checkbox" name="print_auto_purchase" value="1" {{ 'checked' if (settings.get('print_auto_purchase','0') in ['1','true','on','yes']) else '' }}>
+                    <span>طباعة تلقائية بعد حفظ فاتورة المشتريات</span>
+                </label>
+            </div>
+            <div class="form-grid-2" style="margin-top:8px;">
+                <label style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
+                    <input type="checkbox" name="print_auto_sale_return" value="1" {{ 'checked' if (settings.get('print_auto_sale_return','0') in ['1','true','on','yes']) else '' }}>
+                    <span>طباعة تلقائية بعد حفظ مرتجع المبيعات</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
+                    <input type="checkbox" name="print_auto_purchase_return" value="1" {{ 'checked' if (settings.get('print_auto_purchase_return','0') in ['1','true','on','yes']) else '' }}>
+                    <span>طباعة تلقائية بعد حفظ مرتجع المشتريات</span>
+                </label>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                <button type="button" class="btn btn-outline" onclick="previewPrintSettings()"><i class="fas fa-eye"></i> معاينة الطباعة</button>
+                <button type="button" class="btn btn-outline" onclick="printTestFromSettings()"><i class="fas fa-print"></i> طباعة اختبار</button>
+            </div>
+            <small style="color:var(--text-muted);font-size:11px;display:block;margin-top:6px;">
+                المعاينة/الاختبار تستخدم القيم الحالية في النموذج حتى قبل الضغط على حفظ.
+            </small>
+
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+        </form>
+    </div>
+</div>
+<script>
+function getPrintSettingsFormValues() {
+    const mode = document.querySelector('[name="print_mode"]')?.value || 'normal';
+    const paper = document.querySelector('[name="print_paper_size"]')?.value || 'A4';
+    const copies = Math.max(1, Math.min(10, parseInt(document.querySelector('[name="print_auto_copies"]')?.value || '1', 10) || 1));
+    return { mode, paper, copies };
+}
+
+function buildSamplePrintHtml(mode, paper) {
+    const isPos = mode === 'pos';
+    const is58 = paper === '58mm';
+    const sizeLabel = paper === 'A4' ? 'A4' : (paper === '80mm' ? 'POS 80mm' : 'POS 58mm');
+    return `
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>معاينة الطباعة</title>
+<style>
+*{box-sizing:border-box} body{font-family:Cairo,Arial,sans-serif;background:#fff;color:#111;padding:18px}
+.sheet{max-width:${isPos ? (is58 ? '56mm' : '78mm') : '760px'};margin:0 auto}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px}
+.t{font-size:${isPos ? '14px' : '20px'};font-weight:800}
+.sub{font-size:12px;color:#555}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th,td{border:1px solid #ccc;padding:${isPos ? '5px' : '8px'};text-align:right;font-size:${isPos ? '11px' : '13px'}}
+th{background:#111;color:#fff}
+.tot{margin-top:10px;border:1px solid #ddd;padding:8px}
+.tot div{display:flex;justify-content:space-between;padding:4px 0}
+.x{font-size:11px;color:#666;margin-top:10px}
+.noprint{margin-top:12px}
+@media print{.noprint{display:none}@page{size:${paper};margin:8mm}}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="hd">
+    <div><div class="t">معاينة إعدادات الطباعة</div><div class="sub">نوع: ${isPos ? 'POS' : 'عادي'} — مقاس: ${sizeLabel}</div></div>
+    <div class="sub"># TEST-001</div>
+  </div>
+  <table>
+    <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
+    <tbody>
+      <tr><td>صنف تجريبي 1</td><td>2</td><td>50.00</td><td>100.00</td></tr>
+      <tr><td>صنف تجريبي 2</td><td>1</td><td>35.00</td><td>35.00</td></tr>
+    </tbody>
+  </table>
+  <div class="tot">
+    <div><span>المجموع</span><span>135.00</span></div>
+    <div><span>الخصم</span><span>0.00</span></div>
+    <div><strong>الإجمالي</strong><strong>135.00</strong></div>
+  </div>
+  <div class="x">هذه معاينة لاختبار نوع الطابعة ومقاس الورق فقط.</div>
+  <div class="noprint">
+    <button onclick="window.print()">طباعة هذه المعاينة</button>
+    <button onclick="window.close()">إغلاق</button>
+  </div>
+</div>
+</body>
+</html>`;
+}
+
+function previewPrintSettings() {
+    const { mode, paper } = getPrintSettingsFormValues();
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.open();
+    w.document.write(buildSamplePrintHtml(mode, paper));
+    w.document.close();
+}
+
+function printTestFromSettings() {
+    const { mode, paper, copies } = getPrintSettingsFormValues();
+    for (let i = 0; i < copies; i++) {
+        setTimeout(() => {
+            const w = window.open('', '_blank');
+            if (!w) return;
+            w.document.open();
+            w.document.write(buildSamplePrintHtml(mode, paper));
+            w.document.close();
+            setTimeout(() => { try { w.print(); } catch(_) {} }, 350);
+        }, i * 400);
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% set paper = print_paper_size|default('A4') %}
+{% set is_pos = (print_mode|default('normal') == 'pos') or (paper in ['80mm', '58mm']) %}
+{% set pos_w = '58mm' if paper == '58mm' else '80mm' %}
+{% set pos_inner = '52mm' if paper == '58mm' else '72mm' %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>كشف حساب {{ supplier.name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Cairo', sans-serif; background: white; color: #1a1a1a; padding: 30px; font-size: 13px; }
+        .invoice { max-width: 750px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 2px solid #1a1a1a; }
+        .brand-name { font-family: 'Tajawal', sans-serif; font-size: 32px; font-weight: 900; color: #f59e0b; }
+        .brand-sub { font-size: 12px; color: #666; margin-top: 2px; }
+        .invoice-label { font-size: 22px; font-weight: 800; text-align: left; }
+        .invoice-num { font-size: 16px; font-weight: 700; color: #f59e0b; }
+        .invoice-date { font-size: 12px; color: #666; margin-top: 4px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        .info-box { background: #f8f9fa; border-radius: 8px; padding: 14px 16px; }
+        .info-box label { font-size: 10px; color: #999; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+        .info-box .val { font-size: 15px; font-weight: 700; }
+        .info-box .sub { font-size: 11px; color: #666; }
+        h3 { font-size: 14px; margin: 18px 0 8px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+        thead { background: #1a1a1a; }
+        thead th { color: white; padding: 10px 14px; font-size: 12px; font-weight: 700; text-align: right; }
+        tbody tr:nth-child(even) { background: #f8f9fa; }
+        tbody td { padding: 10px 14px; border-bottom: 1px solid #eee; }
+        .footer { margin-top: 36px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 16px; }
+
+        /* ===== POS thermal receipt (80mm / 58mm) ===== */
+        body.pos {
+            font-family: Cairo, Arial, sans-serif;
+            font-size: 12px;
+            padding: 2mm 1.5mm;
+            width: {{ pos_inner }};
+            margin: 0 auto;
+        }
+        body.pos .invoice { max-width: 100%; width: 100%; margin: 0; }
+        body.pos .header { flex-direction: column; align-items: center; text-align: center; gap: 2px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px dashed #000; }
+        body.pos .header > div:last-child { text-align: center !important; }
+        body.pos .brand-name { font-size: 16px; }
+        body.pos .brand-sub { font-size: 10px; }
+        body.pos .invoice-label { font-size: 14px; text-align: center; }
+        body.pos .invoice-num { font-size: 12px; }
+        body.pos .invoice-date { font-size: 10px; }
+        body.pos .info-grid { display: block; margin-bottom: 6px; }
+        body.pos .info-box { background: none; padding: 3px 0; border-radius: 0; border-bottom: 1px dashed #ccc; }
+        body.pos .info-box label { font-size: 9px; letter-spacing: 0; }
+        body.pos .info-box .val { font-size: 12px; }
+        body.pos .info-box .sub { font-size: 10px; }
+        body.pos h3 { font-size: 11px; margin: 8px 0 4px; }
+        body.pos table { table-layout: fixed; }
+        body.pos thead th { padding: 4px 3px; font-size: 10px; }
+        body.pos tbody td { padding: 4px 3px; font-size: 10px; border-bottom: 1px dashed #ccc; overflow-wrap: break-word; word-break: normal; }
+        body.pos table.t-invoices th:nth-child(1), body.pos table.t-invoices td:nth-child(1) { width: 26%; }
+        body.pos table.t-invoices th:nth-child(2), body.pos table.t-invoices td:nth-child(2) { width: 20%; }
+        body.pos table.t-invoices th:nth-child(3), body.pos table.t-invoices td:nth-child(3) { width: 18%; }
+        body.pos table.t-invoices th:nth-child(4), body.pos table.t-invoices td:nth-child(4) { width: 18%; }
+        body.pos table.t-invoices th:nth-child(5), body.pos table.t-invoices td:nth-child(5) { width: 18%; }
+        body.pos table.t-txns th:nth-child(1), body.pos table.t-txns td:nth-child(1) { width: 20%; }
+        body.pos table.t-txns th:nth-child(2), body.pos table.t-txns td:nth-child(2) { width: 18%; }
+        body.pos table.t-txns th:nth-child(3), body.pos table.t-txns td:nth-child(3) { width: 20%; }
+        body.pos table.t-txns th:nth-child(4), body.pos table.t-txns td:nth-child(4) { width: 42%; text-align: right; }
+        body.pos .footer { font-size: 9px; margin-top: 8px; padding-top: 6px; }
+        body.pos.pos58 { font-size: 11px; }
+        body.pos.pos58 .brand-name { font-size: 14px; }
+        body.pos.pos58 thead th, body.pos.pos58 tbody td { font-size: 8.5px; padding: 3px 2px; }
+
+        @media print {
+            .no-print { display: none; }
+            {% if is_pos %}
+            @page { size: {{ pos_w }} 297mm; margin: 0; }
+            html, body { width: {{ pos_inner }} !important; margin: 0 auto !important; padding: 0 !important; background: #fff !important; }
+            {% else %}
+            @page { size: A4; margin: 8mm; }
+            body { padding: 10px; }
+            {% endif %}
+        }
+    </style>
+</head>
+<body class="{% if is_pos %}pos{% endif %} {% if paper == '58mm' %}pos58{% endif %}">
+<div class="invoice">
+    <div class="header">
+        <div>
+            <div class="brand-name">{{ app_brand_title | default('Silsal POS') }}</div>
+            <div class="brand-sub">{{ app_subtitle_brand | default('نظام إدارة أعمال ومحاسبة') }}</div>
+        </div>
+        <div style="text-align:left;">
+            <div class="invoice-label">كشف حساب مورد</div>
+            <div class="invoice-num">{{ supplier.code or '' }}</div>
+            <div class="invoice-date">تاريخ الطباعة: {{ printed_at.strftime('%Y/%m/%d %H:%M') }}</div>
+        </div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-box">
+            <label>المورد</label>
+            <div class="val">{{ supplier.name }}</div>
+            {% if supplier.phone %}<div class="sub">{{ supplier.phone }}</div>{% endif %}
+        </div>
+        <div class="info-box">
+            <label>الرصيد الحالي</label>
+            <div class="val" style="color:{% if supplier.balance > 0 %}#d97706{% elif supplier.balance < 0 %}#059669{% else %}#1a1a1a{% endif %};">{{ "{:,.2f}".format(supplier.balance) }}</div>
+            <div class="sub">
+                {% if supplier.balance > 0 %}له — مستحق للمورد
+                {% elif supplier.balance < 0 %}عليه — مدين لنا
+                {% else %}مسوّى{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <h3>فواتير الشراء</h3>
+    <table class="t-invoices">
+        <thead><tr><th>الفاتورة</th><th>التاريخ</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
+        <tbody>
+        {% for p in purchases %}
+        <tr>
+            <td>{{ p.invoice_number }}</td>
+            <td>{{ p.date.strftime('%Y/%m/%d') }}</td>
+            <td>{{ "{:,.2f}".format(p.total) }}</td>
+            <td>{{ "{:,.2f}".format(p.paid) }}</td>
+            <td>{{ "{:,.2f}".format(p.remaining) }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center;color:#999;">لا توجد فواتير</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <h3>سجل الحركات</h3>
+    <table class="t-txns">
+        <thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>ملاحظات</th></tr></thead>
+        <tbody>
+        {% for pay in payments %}
+        <tr>
+            <td>{{ pay.date.strftime('%Y/%m/%d') }}</td>
+            <td>
+                {% if pay.amount < 0 %}مدين (عليه)
+                {% elif pay.notes and 'تحصيل من المورد' in pay.notes %}تحصيل
+                {% else %}دفعة{% endif %}
+            </td>
+            <td>{{ "{:,.2f}".format(pay.amount) }}</td>
+            <td>{{ pay.notes or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:center;color:#999;">لا توجد حركات</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>{{ app_company | default('') }} — {{ app_brand_title | default('Silsal POS') }}</p>
+    </div>
+</div>
+<div class="no-print" style="text-align:center;margin-top:20px;">
+    <button onclick="window.print()" style="padding:10px 24px;background:#f59e0b;border:none;border-radius:8px;font-family:Cairo;font-size:14px;font-weight:700;cursor:pointer;">طباعة الكشف</button>
+    <button onclick="window.close()" style="padding:10px 24px;background:#eee;border:none;border-radius:8px;font-family:Cairo;font-size:14px;cursor:pointer;margin-right:8px;">إغلاق</button>
+</div>
+<script>
+(function () {
+    function fitPosReceiptPage() {
+        if (!document.body || !document.body.classList.contains('pos')) return;
+        var el = document.querySelector('.invoice') || document.querySelector('.sheet');
+        if (!el) return;
+        var px = Math.max(el.scrollHeight, el.offsetHeight, el.getBoundingClientRect().height);
+        var mm = Math.ceil((px * 25.4) / 96) + 6;
+        if (mm < 60) mm = 60;
+        if (mm > 1800) mm = 1800;
+        var w = document.body.classList.contains('pos58') ? '58mm' : '80mm';
+        var old = document.getElementById('pos-page-fit');
+        if (old) old.remove();
+        var st = document.createElement('style');
+        st.id = 'pos-page-fit';
+        st.textContent = '@page{size:' + w + ' ' + mm + 'mm;margin:0}';
+        document.head.appendChild(st);
+    }
+    // Compute the receipt page height immediately (element already in the DOM at this point),
+    // then refine again after full load (fonts/images) and right before the browser prints.
+    fitPosReceiptPage();
+    window.addEventListener('load', function () {
+        fitPosReceiptPage();
+        setTimeout(fitPosReceiptPage, 200);
+    });
+    window.addEventListener('beforeprint', fitPosReceiptPage);
+
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('autoprint') === '1') {
+        window.addEventListener('load', function () {
+            // Make sure the page-fit style is applied before triggering print.
+            fitPosReceiptPage();
+            window.print();
+        });
+    }
+})();
+</script>
+</body>
+</html>

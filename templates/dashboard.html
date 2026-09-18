@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-chart-pie' %}
+{% block title %}لوحة التحكم{% endblock %}
+{% block page_title %}لوحة التحكم{% endblock %}
+{% block breadcrumb %}نظرة عامة — {{ now.strftime('%Y/%m/%d') if now else '' }}{% endblock %}
+
+{% block extra_styles %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block topbar_actions %}{% endblock %}
+
+{% block content %}
+
+{% if pending_transfers > 0 %}
+<div class="alert alert-warning" style="margin-bottom:18px;">
+    <i class="fas fa-exchange-alt pulse"></i>
+    <span>يوجد <strong>{{ pending_transfers }}</strong> طلب تحويل مخزن معلق ينتظر الموافقة</span>
+    <a href="{{ url_for('transfers', status='pending') }}" class="btn btn-warning btn-sm" style="margin-right:auto;">
+        <i class="fas fa-eye"></i> عرض الطلبات
+    </a>
+</div>
+{% endif %}
+
+{% if low_stock > 0 %}
+<div class="alert alert-error" style="margin-bottom:18px;">
+    <i class="fas fa-exclamation-triangle pulse"></i>
+    <span><strong>{{ low_stock }}</strong> صنف وصل للحد الأدنى أو نفذ من المخزون</span>
+    <a href="{{ url_for('report_low_stock') }}" class="btn btn-danger btn-sm" style="margin-right:auto;">
+        <i class="fas fa-eye"></i> عرض التنبيهات
+    </a>
+</div>
+{% endif %}
+
+<!-- KPI Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fas fa-cash-register"></i></div>
+        <div>
+            <div class="stat-value" id="kpi-sales-today">{{ "{:,.0f}".format(sales_today) }}</div>
+            <div class="stat-label">مبيعات اليوم (ج.م)</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-shopping-cart"></i></div>
+        <div>
+            <div class="stat-value" id="kpi-purchases-today">{{ "{:,.0f}".format(purchases_today) }}</div>
+            <div class="stat-label">مشتريات اليوم (ج.م)</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-rotate-left"></i></div>
+        <div>
+            <div class="stat-value" id="kpi-customers">{{ "{:,.0f}".format(customers_count) }}</div>
+            <div class="stat-label">مرتجع اليوم (ج.م)</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-chart-line"></i></div>
+        <div>
+            <div class="stat-value" id="kpi-products">{{ "{:,.0f}".format(products_count) }}</div>
+            <div class="stat-label">صافي البيع بعد المرتجع (ج.م)</div>
+        </div>
+    </div>
+    <div class="stat-card" {% if pending_transfers > 0 %}style="border-color:rgba(245,158,11,.4)"{% endif %}>
+        <div class="stat-icon gold"><i class="fas fa-exchange-alt"></i></div>
+        <div>
+            <div class="stat-value" id="kpi-pending-tr" {% if pending_transfers > 0 %}style="color:var(--accent)"{% endif %}>{{ pending_transfers }}</div>
+            <div class="stat-label">تحويلات معلقة</div>
+        </div>
+    </div>
+    <div class="stat-card" {% if low_stock > 0 %}style="border-color:rgba(239,68,68,.4)"{% endif %}>
+        <div class="stat-icon red"><i class="fas fa-exclamation-triangle"></i></div>
+        <div>
+            <div class="stat-value" id="kpi-low-stock" {% if low_stock > 0 %}style="color:var(--danger)"{% endif %}>{{ low_stock }}</div>
+            <div class="stat-label">أصناف تحت الحد</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts + Tables Row -->
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:18px;">
+
+    <!-- Weekly Sales Chart -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-chart-area"></i> مبيعات آخر 7 أيام</div>
+            <a href="{{ url_for('report_sales') }}" class="btn btn-outline btn-xs"><i class="fas fa-arrow-left"></i> تفاصيل</a>
+        </div>
+        <div class="card-body" style="padding:16px 20px;">
+            <canvas id="weeklyChart" height="110"></canvas>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-bolt"></i> روابط سريعة</div></div>
+        <div class="card-body" style="padding:14px;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <a href="{{ url_for('new_sale') }}" class="btn btn-primary" style="justify-content:flex-start;">
+                    <i class="fas fa-cash-register"></i> فاتورة مبيعات جديدة
+                </a>
+                <a href="{{ url_for('new_purchase') }}" class="btn btn-info" style="justify-content:flex-start;">
+                    <i class="fas fa-shopping-cart"></i> فاتورة مشتريات جديدة
+                </a>
+                <a href="{{ url_for('new_transfer') }}" class="btn btn-outline" style="justify-content:flex-start;">
+                    <i class="fas fa-exchange-alt"></i> طلب تحويل مخزن
+                </a>
+                <a href="{{ url_for('add_customer') }}" class="btn btn-outline" style="justify-content:flex-start;">
+                    <i class="fas fa-user-plus"></i> إضافة عميل
+                </a>
+                <a href="{{ url_for('add_product') }}" class="btn btn-outline" style="justify-content:flex-start;">
+                    <i class="fas fa-plus-circle"></i> إضافة صنف جديد
+                </a>
+                <a href="{{ url_for('report_dashboard') }}" class="btn btn-outline" style="justify-content:flex-start;">
+                    <i class="fas fa-chart-bar"></i> التقارير التحليلية
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Row -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+
+    <!-- Recent Sales -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-receipt"></i> آخر المبيعات</div>
+            <a href="{{ url_for('sales') }}" class="btn btn-outline btn-xs">عرض الكل</a>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>التاريخ</th></tr></thead>
+                <tbody>
+                    {% for sale in recent_sales %}
+                    <tr data-href="{{ url_for('sale_detail', id=sale.id) }}" class="clickable">
+                        <td style="color:var(--accent);font-weight:700;">{{ sale.invoice_number }}</td>
+                        <td>{{ sale.customer.name if sale.customer else 'نقدي' }}</td>
+                        <td style="font-weight:700;">{{ "{:,.2f}".format(sale.total) }}</td>
+                        <td style="color:var(--text-muted);font-size:12px;">{{ sale.date.strftime('%m/%d %H:%M') }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4"><div class="empty-state" style="padding:24px;"><i class="fas fa-receipt"></i><h3>لا توجد مبيعات بعد</h3></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pending Transfers -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-exchange-alt"></i> طلبات التحويل المعلقة
+                {% if pending_transfers > 0 %}<span class="badge badge-warning pulse">{{ pending_transfers }}</span>{% endif %}
+            </div>
+            <a href="{{ url_for('transfers') }}" class="btn btn-outline btn-xs">عرض الكل</a>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>الرقم</th><th>من</th><th>إلى</th><th>الإجراء</th></tr></thead>
+                <tbody>
+                    {% for t in recent_transfers %}
+                    <tr>
+                        <td style="color:var(--accent);font-weight:700;">{{ t.request_number }}</td>
+                        <td style="font-size:12px;">{{ t.from_warehouse.name }}</td>
+                        <td style="font-size:12px;">{{ t.to_warehouse.name }}</td>
+                        <td>
+                            {% if current_user.role in ['admin','manager'] %}
+                            <a href="{{ url_for('transfer_detail', id=t.id) }}" class="btn btn-warning btn-xs">
+                                <i class="fas fa-gavel"></i> قرار
+                            </a>
+                            {% else %}
+                            <span class="badge badge-warning pulse">معلق</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4"><div class="empty-state" style="padding:24px;"><i class="fas fa-check-circle" style="color:var(--success);"></i><h3 style="color:var(--success);">لا توجد طلبات معلقة</h3></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+Chart.defaults.color = '#64748b';
+Chart.defaults.font = { family: 'Cairo, sans-serif', size: 11 };
+
+(async () => {
+    try {
+        const r = await fetch('/api/dashboard-stats');
+        const d = await r.json();
+        const labels = d.daily_sales.map(x => x.date);
+        const data = d.daily_sales.map(x => x.total);
+        const maxVal = Math.max(...data, 1);
+
+        new Chart(document.getElementById('weeklyChart'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'المبيعات',
+                    data,
+                    borderColor: '#f59e0b',
+                    backgroundColor: (ctx) => {
+                        const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
+                        g.addColorStop(0, 'rgba(245,158,11,.25)');
+                        g.addColorStop(1, 'rgba(245,158,11,.0)');
+                        return g;
+                    },
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2.5,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#f59e0b',
+                    pointBorderColor: '#0f1422',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1a2035',
+                        borderColor: 'rgba(245,158,11,.4)',
+                        borderWidth: 1,
+                        titleFont: { family: 'Cairo', size: 12 },
+                        bodyFont: { family: 'Cairo', size: 13 },
+                        callbacks: { label: v => ' ' + v.raw.toLocaleString('ar') + ' ج.م' }
+                    }
+                },
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(255,255,255,.04)' },
+                        ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    } catch(e) { console.log('Chart load failed', e); }
+})();
+
+(function kpiPoll(){
+    function fmt(n){ try{ return Math.round(Number(n)).toLocaleString('ar-EG'); }catch(e){ return n; } }
+    async function tick(){
+        try{
+            var r = await fetch('/api/dashboard-kpi');
+            if(!r.ok) return;
+            var d = await r.json();
+            var el = function(id){ return document.getElementById(id); };
+            if(el('kpi-sales-today')) el('kpi-sales-today').textContent = fmt(d.sales_today);
+            if(el('kpi-purchases-today')) el('kpi-purchases-today').textContent = fmt(d.purchases_today);
+            if(el('kpi-customers')) el('kpi-customers').textContent = fmt(d.customers_count);
+            if(el('kpi-products')) el('kpi-products').textContent = fmt(d.products_count);
+            if(el('kpi-pending-tr')){
+                el('kpi-pending-tr').textContent = d.pending_transfers;
+                el('kpi-pending-tr').style.color = d.pending_transfers > 0 ? 'var(--accent)' : '';
+            }
+            if(el('kpi-low-stock')){
+                el('kpi-low-stock').textContent = d.low_stock;
+                el('kpi-low-stock').style.color = d.low_stock > 0 ? 'var(--danger)' : '';
+            }
+        }catch(e){}
+    }
+    setInterval(tick, 20000);
+})();
+</script>
+{% endblock %}

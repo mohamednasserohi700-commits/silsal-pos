@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-file-excel' %}
+{% block title %}استيراد موردين من إكسيل{% endblock %}
+{% block page_title %}استيراد موردين من ملف إكسيل{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 700px;">
+    <div class="card-header"><div class="card-title"><i class="fas fa-file-excel"></i> رفع ملف الموردين (.xlsx)</div></div>
+    <div class="card-body">
+        <p style="color: var(--text-muted); margin-bottom: 16px;">
+            يقرأ النظام صف العناوين تلقائياً ويحاول مطابقة الأعمدة التالية إن وُجدت:
+            <b>كود</b>، <b>اسم المورد</b>، <b>الهاتف</b>، <b>البريد الإلكتروني</b>، <b>العنوان</b>.
+            العمود الوحيد المطلوب فعلياً هو <b>اسم المورد</b> — بقية الأعمدة اختيارية.
+            إذا لم يوجد عمود «كود»، يتم توليد كود تلقائي لكل مورد جديد.
+            الأسماء المُدخلة مسبقاً في النظام يتم تجاوزها تلقائياً حتى لا تتكرر.
+        </p>
+        <form method="POST" action="{{ url_for('import_suppliers') }}" enctype="multipart/form-data">
+            <div class="form-group">
+                <label class="form-label">ملف الإكسيل *</label>
+                <input type="file" name="file" class="form-control" accept=".xlsx,.xlsm" required>
+            </div>
+            <div style="display:flex; gap:10px; margin-top: 10px;">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-file-import"></i> استيراد الملف</button>
+                <a href="{{ url_for('suppliers') }}" class="btn btn-outline">إلغاء</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

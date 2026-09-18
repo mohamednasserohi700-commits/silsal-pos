@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover">
+    <title>تسجيل الدخول | {{ app_brand_title | default('POS System Pro') }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"></noscript>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        :root{
+            --primary:#0066FF;
+            --secondary:#7C3AED;
+            --accent:#00D4FF;
+            --pink:#EC4899;
+            --background:#050B1D;
+            --foreground:#FFFFFF;
+            --card-hero:#040F2C;
+            --card-form:#051A44;
+            --border:rgba(88,140,255,.30);
+            --radius:20px;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        html,body{min-height:100%}
+        body{
+            font-family:Cairo, sans-serif;
+            background: var(--background);
+            color:var(--foreground);
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:28px 16px;
+            overflow-x:hidden;
+        }
+
+        /* Background layers */
+        .bg{
+            position:fixed; inset:0;
+            z-index:0;
+            pointer-events:none;
+            overflow:hidden;
+            background: radial-gradient(ellipse 90% 70% at 50% 0%, #0a1f4d 0%, #050b1d 55%, #030714 100%);
+        }
+        .bg::before{
+            content:'';
+            position:absolute; inset:-30%;
+            background:
+                radial-gradient(ellipse 55% 50% at 12% 15%, rgba(0,90,255,.35) 0%, transparent 58%),
+                radial-gradient(ellipse 55% 50% at 88% 85%, rgba(0,120,255,.28) 0%, transparent 58%),
+                radial-gradient(ellipse 50% 45% at 80% 15%, rgba(124,58,237,.16) 0%, transparent 55%),
+                radial-gradient(ellipse 50% 50% at 20% 85%, rgba(0,212,255,.14) 0%, transparent 55%);
+            filter: blur(20px);
+            animation: gradientShift 18s ease-in-out infinite;
+            transform: translate3d(0,0,0);
+        }
+        .bg::after{
+            content:'';
+            position:absolute; inset:0;
+            opacity:.16;
+            background-image:
+                linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px);
+            background-size: 44px 44px;
+            mask-image: radial-gradient(circle at 50% 30%, rgba(0,0,0,1) 0%, rgba(0,0,0,.5) 42%, rgba(0,0,0,0) 74%);
+        }
+        @keyframes gradientShift{
+            0%{transform:translate(-2%, -1%) scale(1)}
+            50%{transform:translate(2%, 2%) scale(1.03)}
+            100%{transform:translate(-2%, -1%) scale(1)}
+        }
+
+        /* Shell */
+        .page{
+            width:100%;
+            max-width: 1180px;
+            position:relative;
+            z-index:1;
+            border-radius: 26px;
+            overflow:hidden;
+            border:1px solid rgba(120,165,255,.22);
+            background: var(--card-form);
+            box-shadow: 0 30px 90px rgba(0,10,40,.65), 0 0 0 1px rgba(255,255,255,.03) inset;
+        }
+
+        /* Top bar */
+        .top-bar{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:14px;
+            padding: 18px 26px;
+            border-bottom:1px solid rgba(120,165,255,.14);
+            background: linear-gradient(90deg, rgba(0,60,180,.16), rgba(3,15,45,0));
+            flex-wrap:wrap;
+        }
+        .brand{
+            display:flex; align-items:center; gap:12px; min-width:0;
+        }
+        .brand-badge{
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            gap:2px;
+            flex-shrink:0;
+        }
+        .brand-badge svg{ display:block; filter: drop-shadow(0 4px 14px rgba(59,130,246,.35)); }
+        .brand-badge .erp-mark{
+            font-family: Cairo, sans-serif;
+            font-weight:900;
+            font-size: 15px;
+            letter-spacing:1px;
+            background: linear-gradient(90deg, #22d3ee, #38bdf8);
+            -webkit-background-clip:text; background-clip:text; color:transparent;
+        }
+        .brand-text{text-align:right; min-width:0;}
+        .brand-title{
+            font-size: 19px;
+            font-weight:800;
+            white-space:nowrap;
+        }
+        .brand-sub{
+            color: rgba(255,255,255,.58);
+            font-size: 12.5px;
+            margin-top:3px;
+            line-height:1.2;
+        }
+        .top-nav{display:flex;align-items:center;gap:12px;flex-shrink:0}
+        .nav-divider{width:1px;height:22px;background:rgba(255,255,255,.20);}
+        .nav-pill{
+            display:inline-flex; align-items:center; gap:8px;
+            color: rgba(255,255,255,.85);
+            font-size: 13.5px;
+            font-weight:700;
+            padding: 9px 16px;
+            border-radius: 999px;
+            border:1px solid rgba(90,150,255,.45);
+            background: rgba(20,50,110,.35);
+            cursor:pointer;
+            font-family:inherit;
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
+        }
+        .nav-pill i{font-size:12px; color: rgba(200,225,255,.9)}
+        .nav-pill:hover{
+            transform: translateY(-1px);
+            border-color: rgba(0,212,255,.65);
+            box-shadow: 0 10px 26px rgba(0,150,255,.18);
+            background: rgba(20,60,130,.45);
+        }
+
+        .about-popup{
+            display:none;
+            position:absolute;
+            top:52px;
+            left:0;
+            width:min(360px, 92vw);
+            border-radius: 14px;
+            padding: 14px 14px;
+            background: rgba(6,18,46,.94);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border:1px solid rgba(120,165,255,.20);
+            box-shadow: 0 24px 70px rgba(0,0,0,.55);
+            font-size: 13px;
+            color: rgba(255,255,255,.82);
+            line-height:1.8;
+            text-align:right;
+            z-index:10;
+        }
+        .about-popup.open{display:block}
+        .about-popup strong{
+            display:block;
+            font-weight:800;
+            color:#fff;
+            margin-bottom:6px;
+        }
+        .about-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+        .about-btn{
+            display:inline-flex; align-items:center; gap:8px;
+            padding:10px 12px; border-radius: 14px;
+            border:1px solid rgba(255,255,255,.10);
+            background: rgba(255,255,255,.03);
+            text-decoration:none; color:#fff; font-weight:800; font-size: 13px;
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+        .about-btn:hover{transform: translateY(-1px); border-color: rgba(255,255,255,.18); box-shadow: 0 18px 60px rgba(0,0,0,.25);}
+        .about-btn.wa{border-color: rgba(37,211,102,.25)} .about-btn.wa i{color:#25d366}
+        .about-btn.fb{border-color: rgba(96,165,250,.25)} .about-btn.fb i{color:#60a5fa}
+
+        .sr-only{position:absolute !important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+        #aboutToggle:checked + label + .about-popup{display:block}
+        #forgotToggle:checked ~ #forgotModal{display:flex}
+
+        .modal{
+            display:none; position:fixed; inset:0; z-index:50;
+            align-items:center; justify-content:center; padding:16px;
+            background:rgba(0,0,0,.62);
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+        }
+        .modal.open{display:flex}
+        .modal-card{
+            width:min(520px, 96vw); border-radius: 18px;
+            border:1px solid rgba(120,165,255,.20);
+            background: rgba(5,14,38,.92);
+            box-shadow: 0 24px 80px rgba(0,0,0,.60);
+            padding: 18px 16px;
+        }
+        .modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
+        .modal-title{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;}
+        .modal-x{
+            width:38px;height:38px;border-radius: 12px;
+            border:1px solid rgba(255,255,255,.12);
+            background: rgba(255,255,255,.03);
+            color: rgba(255,255,255,.85);
+            cursor:pointer;
+            display:flex;align-items:center;justify-content:center;
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+        .modal-x:hover{transform: translateY(-1px); border-color: rgba(0,212,255,.22); box-shadow: 0 14px 40px rgba(0,212,255,.08);}
+        .modal-body{color: rgba(255,255,255,.78); font-size: 13.5px; line-height: 1.8;}
+        .modal-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+        .chip{
+            display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius: 14px;
+            border:1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.03);
+            text-decoration:none;color:#fff;font-weight:700;font-size: 13px;
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+        .chip:hover{transform: translateY(-1px); border-color: rgba(255,255,255,.18); box-shadow: 0 18px 60px rgba(0,0,0,.25);}
+        .chip.wa{border-color: rgba(37,211,102,.25)} .chip.wa i{color:#25d366}
+        .chip.fb{border-color: rgba(96,165,250,.25)} .chip.fb i{color:#60a5fa}
+
+        /* Main split */
+        .main{
+            display:grid;
+            grid-template-columns: 1.18fr 1fr;
+        }
+        .hero-side{
+            padding: 30px 32px 34px;
+            background: var(--card-hero);
+            border-right:1px solid rgba(120,165,255,.14);
+            display:flex; flex-direction:column; gap:14px;
+        }
+        .form-side{
+            padding: 40px 34px;
+            display:flex;
+            flex-direction:column;
+            justify-content:center;
+            gap:16px;
+            position:relative;
+        }
+
+        /* Entrance */
+        .stagger{opacity:0; transform: translateY(16px); animation: enter .65s ease-out forwards}
+        .d1{animation-delay:.06s}.d2{animation-delay:.14s}.d3{animation-delay:.22s}.d4{animation-delay:.30s}.d5{animation-delay:.38s}
+        @keyframes enter{to{opacity:1; transform:none}}
+
+        /* Hero text */
+        .hero-greeting{
+            font-size: 26px;
+            font-weight:800;
+            display:flex; align-items:center; gap:10px; justify-content:flex-end;
+            text-align:right;
+        }
+        .hero-headline{
+            font-size: 30px;
+            font-weight:900;
+            line-height:1.3;
+            text-align:right;
+        }
+        .hero-headline .erp-word{
+            font-size: 36px;
+            background: linear-gradient(90deg, #60a5fa, #a78bfa, #e879f9);
+            -webkit-background-clip:text; background-clip:text; color:transparent;
+            padding:0 4px;
+        }
+        .hero-desc{
+            font-size: 14px;
+            color: rgba(255,255,255,.65);
+            line-height:1.85;
+            text-align:right;
+        }
+
+        /* Hero module pills */
+        .hero-pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:2px;}
+        .hero-pill{
+            display:inline-flex; align-items:center; gap:9px;
+            padding: 11px 18px;
+            border-radius: 999px;
+            border:1px solid rgba(90,150,255,.35);
+            background: linear-gradient(180deg, rgba(20,55,120,.55), rgba(10,30,70,.45));
+            font-size: 14px; font-weight:700; color:#fff;
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+        .hero-pill:hover{transform: translateY(-1px); border-color: rgba(0,212,255,.55); box-shadow: 0 12px 28px rgba(0,150,255,.15);}
+        .hero-pill i{font-size:15px;}
+        .hero-pill.hr i{color:#22d3ee}
+        .hero-pill.mfg i{color:#fbbf24}
+        .hero-pill.wh i{color:#c084fc}
+        .hero-pill.acc i{color:#2dd4bf}
+
+        /* Illustration + feature list row */
+        .hero-bottom{
+            display:grid;
+            grid-template-columns: 1fr 1.1fr;
+            gap:14px;
+            margin-top:10px;
+            align-items:center;
+        }
+        .illustration{width:100%; height:auto; overflow:visible;}
+
+        .feature-list{display:flex; flex-direction:column; gap:10px;}
+        .feat{
+            display:flex; align-items:center; gap:12px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border:1px solid rgba(90,150,255,.28);
+            background: linear-gradient(180deg, rgba(20,50,110,.30), rgba(8,20,54,.35));
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+        .feat:hover{transform: translateY(-1px); border-color: rgba(0,212,255,.4); box-shadow: 0 14px 34px rgba(0,150,255,.12);}
+        .feat .chev{color: rgba(255,255,255,.35); font-size:14px; flex-shrink:0;}
+        .feat .feat-text{flex:1; min-width:0; text-align:right;}
+        .feat .feat-text b{display:block; font-size:14.5px; font-weight:800;}
+        .feat .feat-text span{display:block; font-size:12.5px; color: rgba(255,255,255,.55); margin-top:3px;}
+        .feat-icon{
+            width:42px; height:42px; border-radius:13px; flex-shrink:0;
+            display:flex; align-items:center; justify-content:center;
+            color:#fff; font-size:16px;
+            box-shadow: 0 10px 24px rgba(0,0,0,.30), 0 0 0 1px rgba(255,255,255,.08) inset;
+        }
+        .feat-icon.purple{background: linear-gradient(135deg,#7c3aed,#a78bfa);}
+        .feat-icon.green{background: linear-gradient(135deg,#0d9488,#22c55e);}
+
+        /* Form side */
+        .form-headline{
+            font-size: 32px;
+            font-weight:900;
+            text-align:right;
+            background: linear-gradient(90deg, #38bdf8, #7c3aed);
+            -webkit-background-clip:text; background-clip:text; color:transparent;
+        }
+        .form-sub{font-size: 14.5px; color: rgba(255,255,255,.68); text-align:right; margin-top:-6px;}
+
+        .badge-pills{display:flex; gap:10px; margin-top:6px; flex-wrap:wrap;}
+        .badge-pill{
+            display:inline-flex; align-items:center; gap:8px;
+            padding: 9px 16px;
+            border-radius: 999px;
+            border:1px solid rgba(90,150,255,.35);
+            background: rgba(20,50,110,.30);
+            font-size: 13.5px; font-weight:700; color:#fff;
+            transition: transform .2s ease, border-color .2s ease;
+        }
+        .badge-pill:hover{transform: translateY(-1px); border-color: rgba(0,212,255,.5);}
+        .badge-pill i{font-size:13px;}
+        .badge-pill.b1 i{color:#38bdf8}
+        .badge-pill.b2 i{color:#a78bfa}
+        .badge-pill.b3 i{color:#facc15}
+
+        /* Alert */
+        .alert{
+            display:flex; gap:10px; align-items:flex-start;
+            padding: 12px 12px; border-radius: 14px;
+            border:1px solid rgba(255,68,102,.28);
+            background: rgba(255,68,102,.10);
+            color: rgba(255,255,255,.92);
+            line-height:1.55; font-size: 13px;
+            animation: fadeIn .35s ease both;
+        }
+        .alert i{margin-top:2px; color: #ffd1da}
+        @keyframes fadeIn{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
+
+        /* Form */
+        form{display:flex;flex-direction:column;gap:14px; margin-top:4px;}
+        .field{display:flex;flex-direction:column;gap:8px;}
+        label{
+            font-size: 13.5px;
+            color: rgba(255,255,255,.82);
+            font-weight: 700;
+            display:flex; align-items:center; justify-content:space-between;
+        }
+        label i{color: rgba(255,255,255,.35); font-size:13px;}
+        .input-wrap{position:relative;}
+        .input{
+            width:100%;
+            padding: 14px 46px 14px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(90,150,255,.28);
+            background: rgba(6,18,46,.65);
+            color: var(--foreground);
+            font-size: 14.5px;
+            outline: none;
+            font-family:inherit;
+            transition: box-shadow .3s ease, border-color .3s ease, background .3s ease;
+        }
+        .input::placeholder{color: rgba(255,255,255,.38)}
+        .icon{
+            position:absolute; right: 15px; top:50%; transform: translateY(-50%);
+            color: rgba(255,255,255,.45); font-size: 14px; pointer-events:none;
+        }
+        .action{
+            position:absolute; left: 10px; top:50%; transform: translateY(-50%);
+            background: transparent; border: 1px solid rgba(255,255,255,.14);
+            color: rgba(255,255,255,.75); width: 36px; height: 34px; border-radius: 12px;
+            cursor:pointer; display:flex; align-items:center; justify-content:center;
+            transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+        }
+        .action:hover{transform: translateY(-50%) scale(1.03); border-color: rgba(0,212,255,.30); box-shadow: 0 14px 36px rgba(0,212,255,.10);}
+        .input.user:focus{border-color: rgba(56,189,248,.65); box-shadow: 0 0 0 4px rgba(56,189,248,.15);}
+        .input.pass:focus{border-color: rgba(124,58,237,.65); box-shadow: 0 0 0 4px rgba(124,58,237,.15);}
+
+        .row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+        .remember{display:flex;align-items:center;gap:8px;font-size: 13.5px;color: rgba(255,255,255,.78);user-select:none;}
+        .remember input{width: 17px; height: 17px; accent-color: var(--secondary); cursor:pointer;}
+        .link{color: rgba(56,189,248,.95); text-decoration:none; font-size: 13.5px; font-weight:700;}
+        .link:hover{text-decoration: underline;}
+
+        .btn{
+            width:100%; padding: 15px 14px; border-radius: 14px;
+            border: 1px solid rgba(255,255,255,.12);
+            background: linear-gradient(90deg, #00c2ff, #8b5cf6);
+            color:#fff; font-weight:800; font-size: 15px;
+            cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;
+            box-shadow: 0 20px 50px rgba(60,130,255,.25);
+            transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+            margin-top:2px;
+        }
+        .btn:hover{transform: translateY(-1px); box-shadow: 0 24px 60px rgba(60,130,255,.32); filter: brightness(1.05);}
+        .btn:active{transform: scale(.98)}
+        .btn[disabled]{opacity:.55; cursor:not-allowed; transform:none}
+
+        .spinner{width: 18px; height: 18px; border-radius: 999px; border: 2px solid rgba(255,255,255,.25); border-top-color: rgba(255,255,255,.9); animation: spin .7s linear infinite;}
+        @keyframes spin{to{transform: rotate(360deg)}}
+
+        /* Footer */
+        .footer{
+            padding: 16px 20px;
+            display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap;
+            border-top:1px solid rgba(120,165,255,.14);
+            background: rgba(255,255,255,.015);
+            color: rgba(255,255,255,.55);
+            font-size: 13px;
+        }
+        .footer .fdiv{width:1px;height:16px;background:rgba(255,255,255,.18);}
+        .footer strong{color: rgba(255,255,255,.88)}
+        .footer span{display:inline-flex;align-items:center;gap:8px;}
+        .footer i{color: rgba(150,190,255,.7);}
+
+        @media (max-width: 980px){
+            .main{grid-template-columns:1fr}
+            .hero-side{border-right:none;border-bottom:1px solid rgba(120,165,255,.14)}
+            .hero-bottom{grid-template-columns:1fr;}
+            .illustration{max-width:280px;margin:0 auto;}
+        }
+        @media (max-width: 640px){
+            .top-bar{padding:14px 16px;}
+            .brand-title{font-size:16px;}
+            .form-side,.hero-side{padding: 22px 18px;}
+            .hero-headline{font-size:24px;}
+            .hero-headline .erp-word{font-size:28px;}
+            .form-headline{font-size:26px;}
+            .hero-pills{gap:8px}
+            .hero-pill{padding:8px 13px;font-size:12.5px;}
+            .nav-pill{padding:7px 12px;font-size:12.5px;}
+        }
+
+        @media (max-width: 768px) {
+            .bg::before{animation:none !important; filter: blur(10px) !important;}
+            .stagger{animation:none !important; opacity:1 !important; transform:none !important;}
+            .feat, .hero-pill, .badge-pill, .btn, .chip, .about-btn, .nav-pill, .action{transition:none !important;}
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important;}
+        }
+    </style>
+</head>
+<body>
+    <div class="bg" aria-hidden="true"></div>
+
+    <div class="page">
+        <div class="top-bar">
+            <div class="brand">
+                <div class="brand-badge" aria-hidden="true">
+                    <svg width="40" height="26" viewBox="0 0 40 26" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="arrowGrad" x1="0" y1="26" x2="40" y2="0" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#7c3aed"/>
+                                <stop offset="1" stop-color="#38bdf8"/>
+                            </linearGradient>
+                        </defs>
+                        <rect x="2" y="15" width="6" height="9" rx="1.5" fill="url(#arrowGrad)" opacity=".9"/>
+                        <rect x="12" y="10" width="6" height="14" rx="1.5" fill="url(#arrowGrad)" opacity=".95"/>
+                        <rect x="22" y="4" width="6" height="20" rx="1.5" fill="url(#arrowGrad)"/>
+                        <path d="M1 16 L15 6 L27 3" stroke="url(#arrowGrad)" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M20 2.5 L28 2.5 L28 10" stroke="url(#arrowGrad)" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div class="erp-mark">Silsal POS</div>
+                </div>
+                <div class="brand-text">
+                    <div class="brand-title">{{ app_brand_title | default('Pos System Pro') }}</div>
+                    <div class="brand-sub">الواجهة الأفضل لأعمالك</div>
+                </div>
+            </div>
+            <nav class="top-nav" id="topNav">
+               
+                  
+                </button>
+                <span class="nav-divider"></span>
+                <div style="position:relative;">
+                    <input class="sr-only" type="checkbox" id="aboutToggle" />
+                    <label class="nav-pill" for="aboutToggle" id="aboutBtn">
+                        <i class="fas fa-chevron-down" style="font-size:10px"></i> للتواصل <i class="fas fa-globe"></i>
+                    </label>
+                    <div class="about-popup" id="aboutPopup">
+                        <strong>للتواصل والاستفسارات</strong>
+                        إذا احتجت مساعدة أو دعم فني أو اشتراك — تواصل معنا عبر:
+                        <div style="margin-top:6px;color:rgba(255,255,255,.70);font-size:12.5px;">
+                            واتساب: <b style="color:#fff">01103763082</b>
+                        </div>
+                        <div class="about-actions">
+                            <a class="about-btn wa" href="https://wa.me/201103763082" target="_blank" rel="noopener">
+                                <i class="fab fa-whatsapp"></i> واتساب
+                            </a>
+                            <a class="about-btn fb" href="https://www.facebook.com/people/System-Makers/100095476066188/" target="_blank" rel="noopener">
+                                <i class="fab fa-facebook"></i> فيسبوك
+                            </a>
+                        </div>
+                        <div style="margin-top:10px;">
+                            <label for="aboutToggle" class="about-btn" style="justify-content:center;width:100%;opacity:.9;">
+                                <i class="fas fa-times"></i> إغلاق
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+        <div class="main">
+            <div class="form-side" id="loginPanel">
+                <div class="stagger d1">
+                    <div class="form-headline">Silsal POS</div>
+                    <div class="form-sub">نظام إدارة الأعمال المتكامل</div>
+                    <div class="badge-pills">
+                        <span class="badge-pill b1"><i class="fas fa-cloud"></i> قوي</span>
+                        <span class="badge-pill b2"><i class="fas fa-shield-halved"></i> آمن</span>
+                        <span class="badge-pill b3"><i class="fas fa-bolt"></i> سريع</span>
+                    </div>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% for category, message in messages %}
+                    <div class="alert stagger d2" role="alert" aria-live="polite">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        <div>{{ message }}</div>
+                    </div>
+                    {% endfor %}
+                {% endwith %}
+
+                <div class="stagger d3">
+                    <form method="POST" id="loginForm" novalidate>
+                        <div class="field">
+                            <label for="username">اسم المستخدم <i class="fas fa-user"></i></label>
+                            <div class="input-wrap">
+                                <i class="fas fa-user icon"></i>
+                                <input id="username" type="text" name="username" class="input user" placeholder="أدخل اسم المستخدم" autocomplete="username" required autofocus>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="password">كلمة المرور <i class="fas fa-lock"></i></label>
+                            <div class="input-wrap">
+                                <i class="fas fa-lock icon"></i>
+                                <input id="password" type="password" name="password" class="input pass" placeholder="أدخل كلمة المرور" autocomplete="current-password" required>
+                                <button class="action" type="button" id="togglePass" aria-label="إظهار كلمة المرور" title="إظهار/إخفاء">
+                                    <i class="fas fa-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <label class="remember" for="remember">
+                                <input type="checkbox" id="remember" name="remember" checked>
+                                تذكرني
+                            </label>
+                            <label class="link" for="forgotToggle" style="cursor:pointer;user-select:none;">
+                                هل نسيت كلمة المرور؟
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn" id="submitBtn">
+                            <i class="fas fa-arrow-right-to-bracket"></i>
+                            <span id="submitText">دخول</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="hero-side">
+                <div class="hero-greeting stagger d1">مرحباً بعودتك <span>👋</span></div>
+                <div class="hero-headline stagger d1">سيستم <span class="erp-word">ادارة المبيعات والمخازن</span> </div>
+                <div class="hero-desc stagger d2">منصة واحدة لإدارة أعمالك بسهولة .. من الحسابات إلى الفواتير والمخازن والتقارير</div>
+
+                <div class="hero-pills stagger d2">
+                    <span class="hero-pill hr"><i class="fas fa-users"></i> إدارة مؤسستك بالكامل</span>
+                    <span class="hero-pill mfg"><i class="fas fa-industry"></i> تصنيع وإنتاج</span>
+                    <span class="hero-pill wh"><i class="fas fa-cube"></i> مخازن</span>
+                    <span class="hero-pill acc"><i class="fas fa-calculator"></i> حسابات متكاملة</span>
+                </div>
+
+                <div class="hero-bottom stagger d3">
+                    <svg class="illustration" viewBox="0 0 300 260" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="lapGrad" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0" stop-color="#38bdf8"/>
+                                <stop offset=".55" stop-color="#6366f1"/>
+                                <stop offset="1" stop-color="#c026d3"/>
+                            </linearGradient>
+                            <linearGradient id="screenGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0" stop-color="#0b1846"/>
+                                <stop offset="1" stop-color="#141b3d"/>
+                            </linearGradient>
+                            <linearGradient id="barGrad" x1="0" y1="1" x2="0" y2="0">
+                                <stop offset="0" stop-color="#38bdf8"/>
+                                <stop offset="1" stop-color="#a855f7"/>
+                            </linearGradient>
+                        </defs>
+                        <ellipse cx="150" cy="235" rx="105" ry="14" fill="#3b82f6" opacity=".18"/>
+                        <g>
+                            <rect x="18" y="12" width="46" height="46" rx="13" fill="#1746a8" opacity=".9"/>
+                            <path d="M31 38c-4 0-7-3-7-7 0-3.5 2.6-6.3 6-6.8.7-4 4.2-7 8.4-7 4.1 0 7.6 2.8 8.5 6.6 3.6.4 6.4 3.4 6.4 7.1 0 4-3.2 7.1-7.1 7.1H31z" fill="#7dd3fc"/>
+                        </g>
+                        <g>
+                            <rect x="4" y="86" width="50" height="50" rx="14" fill="#3730a3" opacity=".92"/>
+                            <ellipse cx="29" cy="100" rx="13" ry="5" fill="#c4b5fd"/>
+                            <path d="M16 100v9c0 2.8 5.8 5 13 5s13-2.2 13-5v-9" fill="none" stroke="#c4b5fd" stroke-width="2.6"/>
+                            <path d="M16 109.5v8c0 2.8 5.8 5 13 5s13-2.2 13-5v-8" fill="none" stroke="#c4b5fd" stroke-width="2.6"/>
+                        </g>
+                        <g>
+                            <rect x="78" y="52" width="48" height="48" rx="14" fill="#1d4ed8" opacity=".92"/>
+                            <rect x="93" y="66" width="20" height="24" rx="2" fill="#bfdbfe"/>
+                            <rect x="97" y="71" width="12" height="2.2" fill="#1d4ed8"/>
+                            <rect x="97" y="76" width="12" height="2.2" fill="#1d4ed8"/>
+                            <rect x="97" y="81" width="8" height="2.2" fill="#1d4ed8"/>
+                        </g>
+                        <g>
+                            <rect x="128" y="98" width="48" height="48" rx="14" fill="#6d28d9" opacity=".92"/>
+                            <path d="M152 108l14 5v9c0 9-6 14.5-14 18-8-3.5-14-9-14-18v-9z" fill="#ddd6fe"/>
+                        </g>
+                        <g>
+                            <rect x="34" y="118" width="176" height="112" rx="12" fill="url(#lapGrad)" opacity=".22"/>
+                            <rect x="42" y="112" width="158" height="104" rx="10" fill="#0e1638" stroke="url(#lapGrad)" stroke-width="2.5"/>
+                            <rect x="52" y="122" width="138" height="84" rx="5" fill="url(#screenGrad)"/>
+                            <rect x="62" y="176" width="12" height="22" rx="2" fill="url(#barGrad)"/>
+                            <rect x="78" y="164" width="12" height="34" rx="2" fill="url(#barGrad)"/>
+                            <rect x="94" y="150" width="12" height="48" rx="2" fill="url(#barGrad)"/>
+                            <rect x="110" y="158" width="12" height="40" rx="2" fill="url(#barGrad)"/>
+                            <circle cx="160" cy="145" r="16" fill="#1e2a5e"/>
+                            <path d="M160 145 L160 129 A16 16 0 0 1 174 153 Z" fill="#38bdf8"/>
+                            <path d="M160 145 L174 153 A16 16 0 0 1 148 156 Z" fill="#a855f7"/>
+                            <rect x="140" y="170" width="38" height="4" rx="2" fill="#2b3a72"/>
+                            <rect x="140" y="180" width="30" height="4" rx="2" fill="#2b3a72"/>
+                            <rect x="140" y="190" width="34" height="4" rx="2" fill="#2b3a72"/>
+                            <path d="M28 216 L224 216 L206 234 L46 234 Z" fill="#111a3d" stroke="url(#lapGrad)" stroke-width="1.5"/>
+                        </g>
+                    </svg>
+
+                    <div class="feature-list">
+                        <div class="feat">
+                            <i class="fas fa-chevron-left chev"></i>
+                            <div class="feat-text">
+                                <b>إدارة متكاملة</b>
+                                <span>سجلاتك مترابطة .. تقاريرك في مكان واحد</span>
+                            </div>
+                            <div class="feat-icon purple"><i class="fas fa-layer-group"></i></div>
+                        </div>
+                        <div class="feat">
+                            <i class="fas fa-chevron-left chev"></i>
+                            <div class="feat-text">
+                                <b>أمان وموثوقية</b>
+                                <span>بياناتك محمية و متاحة لحظتها</span>
+                            </div>
+                            <div class="feat-icon purple"><i class="fas fa-shield-halved"></i></div>
+                        </div>
+                        <div class="feat">
+                            <i class="fas fa-chevron-left chev"></i>
+                            <div class="feat-text">
+                                <b>أداء أسرع</b>
+                                <span>واجهة بسيطة وتجربة سلسة</span>
+                            </div>
+                            <div class="feat-icon green"><i class="fas fa-bolt"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <span><i class="fas fa-code"></i> برمجة وتطوير : <strong>محمد ناصر عبدالله</strong></span>
+            <span class="fdiv"></span>
+            <span><i class="fas fa-layer-group"></i> <strong>System Makers © 2026</strong></span>
+        </div>
+    </div>
+
+    <input class="sr-only" type="checkbox" id="forgotToggle" />
+    <div class="modal" id="forgotModal" role="dialog" aria-modal="true" aria-label="نسيت كلمة المرور">
+        <div class="modal-card">
+            <div class="modal-head">
+                <div class="modal-title"><i class="fas fa-key" style="color:var(--accent)"></i> نسيت كلمة المرور</div>
+                <label class="modal-x" for="forgotToggle" role="button" tabindex="0" aria-label="إغلاق" style="display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-times"></i>
+                </label>
+            </div>
+            <div class="modal-body">
+                لاسترجاع كلمة المرور أو إعادة تعيينها، تواصل مع الدعم وسيتم مساعدتك فورًا.
+                <div style="margin-top:8px;color:rgba(255,255,255,.65);font-size:12.5px;">
+                    واتساب: <b style="color:#fff">01103763082</b>
+                </div>
+                <div class="modal-actions">
+                    <a class="chip wa" href="https://wa.me/201103763082" target="_blank" rel="noopener">
+                        <i class="fab fa-whatsapp"></i> مراسلة واتساب
+                    </a>
+                    <a class="chip fb" href="https://www.facebook.com/people/System-Makers/100095476066188/" target="_blank" rel="noopener">
+                        <i class="fab fa-facebook"></i> صفحة فيسبوك
+                    </a>
+                    <label class="chip" for="forgotToggle" style="justify-content:center;">
+                        <i class="fas fa-times"></i> إغلاق
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('click', function (e) {
+            var aboutToggle = document.getElementById('aboutToggle');
+            var topNav = document.getElementById('topNav');
+            if (!aboutToggle || !topNav) return;
+            if (topNav.contains(e.target)) return;
+            aboutToggle.checked = false;
+        });
+        document.addEventListener('keydown', function(e){
+            if(e.key !== 'Escape') return;
+            var aboutToggle = document.getElementById('aboutToggle');
+            var forgotToggle = document.getElementById('forgotToggle');
+            if(aboutToggle) aboutToggle.checked = false;
+            if(forgotToggle) forgotToggle.checked = false;
+        });
+
+        (function(){
+            var btn = document.getElementById('scrollLoginBtn');
+            if(!btn) return;
+            btn.addEventListener('click', function(){
+                var panel = document.getElementById('loginPanel');
+                if(panel) panel.scrollIntoView({behavior:'smooth', block:'center'});
+                var u = document.getElementById('username');
+                if(u) u.focus({preventScroll:true});
+            });
+        })();
+
+        (function(){
+            var btn = document.getElementById('togglePass');
+            var inp = document.getElementById('password');
+            if(btn && inp){
+                btn.addEventListener('click', function(){
+                    var isPwd = inp.getAttribute('type') === 'password';
+                    inp.setAttribute('type', isPwd ? 'text' : 'password');
+                    btn.setAttribute('aria-label', isPwd ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
+                    var icon = btn.querySelector('i');
+                    if(icon){
+                        icon.classList.toggle('fa-eye', !isPwd);
+                        icon.classList.toggle('fa-eye-slash', isPwd);
+                    }
+                });
+            }
+        })();
+
+        (function(){
+            var form = document.getElementById('loginForm');
+            var btn  = document.getElementById('submitBtn');
+            var text = document.getElementById('submitText');
+            if(!form || !btn) return;
+            form.addEventListener('submit', function(){
+                var u = (document.getElementById('username').value || '').trim();
+                var p = (document.getElementById('password').value || '').trim();
+                if(!u || !p) return;
+                btn.disabled = true;
+                var sp = document.createElement('span');
+                sp.className = 'spinner';
+                btn.insertBefore(sp, btn.firstChild);
+                if(text) text.textContent = 'جاري التحميل...';
+            });
+        })();
+
+        (function(){
+            function readCookie(name){
+                var m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.$?*|{}()[\]\/+^]/g, '\\$&') + '=([^;]*)'));
+                return m ? decodeURIComponent(m[1]) : '';
+            }
+            function makeId(){
+                try{
+                    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+                }catch(e){}
+                return 'dev-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+            }
+            try{
+                var did = (localStorage.getItem('erp_device_id') || '').trim();
+                if (!did) did = (readCookie('erp_device_id') || '').trim();
+                if (!did) {
+                    did = makeId();
+                    localStorage.setItem('erp_device_id', did);
+                } else {
+                    localStorage.setItem('erp_device_id', did);
+                }
+                document.cookie = 'erp_device_id=' + encodeURIComponent(did) + '; path=/; max-age=31536000; samesite=lax';
+            }catch(e){
+                try{
+                    var fallback = makeId();
+                    document.cookie = 'erp_device_id=' + encodeURIComponent(fallback) + '; path=/; max-age=31536000; samesite=lax';
+                }catch(err){}
+            }
+        })();
+    </script>
+</body>
+</html>

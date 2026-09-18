@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-plus-circle' %}
+{% block title %}{{ 'تعديل مصروف' if expense else 'إضافة مصروف' }}{% endblock %}
+{% block page_title %}{{ 'تعديل مصروف' if expense else 'إضافة مصروف جديد' }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:600px;"><div class="card-body">
+<form method="POST">
+    <div class="form-grid-2">
+        <div class="form-group">
+            <label class="form-label">التصنيف *</label>
+            <select name="category" class="form-control" required>
+                <option value="">اختر...</option>
+                {% for cat in ['إيجار','رواتب','كهرباء','مياه','صيانة','نقل','تسويق','مستلزمات مكتبية','وقود','أخرى'] %}
+                <option value="{{ cat }}" {% if expense and expense.category == cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">المبلغ *</label>
+            <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required value="{{ expense.amount if expense else '' }}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">الفرع</label>
+            <select name="branch_id" class="form-control">
+                <option value="">— عام —</option>
+                {% for b in branches %}<option value="{{ b.id }}" {% if expense and expense.branch_id == b.id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="form-label">الوصف</label>
+        <textarea name="description" class="form-control" placeholder="تفاصيل المصروف...">{{ expense.description if expense else '' }}</textarea>
+    </div>
+    <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+        <a href="{{ url_for('expenses') }}" class="btn btn-outline">إلغاء</a>
+    </div>
+</form>
+</div></div>
+{% endblock %}

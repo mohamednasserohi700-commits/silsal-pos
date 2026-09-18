@@ -1,0 +1,689 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-barcode' %}
+{% block title %}طباعة ملصقات باركود{% endblock %}
+{% block page_title %}طباعة ملصقات باركود{% endblock %}
+{% block breadcrumb %}الأصناف / طباعة ملصقات باركود{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* ===== قائمة البحث ===== */
+    .pick-item {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 6px;
+        cursor: pointer;
+        background: var(--card);
+        color: var(--text);
+        transition: all .12s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .pick-item:hover, .pick-item.is-active {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+    }
+    .pick-item .pick-icon { font-size: 20px; flex-shrink: 0; }
+    .pick-item .pick-body { flex: 1; min-width: 0; }
+    .pick-item .pick-name { font-size: 13px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pick-item .pick-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+    .pick-item .pick-price { font-size: 12px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+
+    .search-results-panel {
+        display: none;
+        margin-top: 10px;
+        max-height: 340px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px;
+        background: var(--card);
+        box-shadow: 0 4px 16px rgba(0,0,0,.08);
+    }
+    .search-results-empty { padding: 12px; color: var(--text-muted); font-size: 13px; text-align: center; }
+    .search-results-error { padding: 12px; color: var(--danger); font-size: 13px; text-align: center; }
+    .search-results-count { font-size: 11px; color: var(--text-muted); padding: 4px 6px 8px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+
+    /* ===== جدول الأصناف المختارة ===== */
+    .selected-row { cursor: pointer; transition: background .1s; }
+    .selected-row.active-preview { background: var(--accent-soft) !important; }
+    .selected-row:hover { background: var(--bg-soft); }
+
+    /* ===== معاينة الملصق ===== */
+    .preview-outer {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 160px;
+        padding: 16px 8px;
+        border-radius: 10px;
+        background: repeating-linear-gradient(
+            45deg,
+            var(--bg-soft, #f4f4f4),
+            var(--bg-soft, #f4f4f4) 8px,
+            transparent 8px,
+            transparent 16px
+        );
+    }
+    #previewWrap {
+        background: #fff;
+        border: 1px solid #ccc;
+        box-shadow: 0 4px 16px rgba(0,0,0,.15);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        text-align: center;
+        padding: 2px 3px;
+    }
+    #previewWrap .pv-name  { font-weight: 800; line-height: 1.2; max-width: 95%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #000; }
+    #previewWrap .pv-bnum  { font-family: 'Courier New', monospace; letter-spacing: .4px; color: #000; margin-top: -2px; direction: ltr; }
+    #previewWrap .pv-code  { color: #555; font-family: 'Courier New', monospace; direction: ltr; }
+    #previewWrap .pv-price { font-weight: 900; color: #000; margin-top: 1px; }
+    #previewWrap svg { width: 88%; display: block; }
+
+    /* ===== اختيار الصيغة ===== */
+    .fmt-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 4px;
+    }
+    .fmt-btn {
+        padding: 5px 11px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all .12s;
+    }
+    .fmt-btn:hover { border-color: var(--accent); }
+    .fmt-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* شارة الكمية */
+    .qty-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 800;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 1fr 390px; gap: 20px; align-items: start;">
+
+    <!-- ============ العمود الرئيسي ============ -->
+    <div>
+        <!-- البحث -->
+        <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-search"></i> البحث عن صنف</div>
+            </div>
+            <div class="card-body">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="productSearch" class="form-control"
+                           placeholder="ابحث بالاسم، الكود، أو الباركود — أو اضغط للاستعراض"
+                           autocomplete="off">
+                </div>
+                <div id="searchResults" class="search-results-panel"></div>
+            </div>
+        </div>
+
+        <!-- الأصناف المختارة -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-list"></i> الأصناف المختارة</div>
+                <div id="totalBadge" style="display:none;" class="qty-badge">0</div>
+            </div>
+            <div id="bulkQtyBar" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border);">
+                <label for="bulkQtyInput" style="font-size:13px;color:var(--text-muted);white-space:nowrap;">
+                    تطبيق نفس عدد الملصقات على كل الأصناف:
+                </label>
+                <input type="number" id="bulkQtyInput" class="form-control" min="1" max="500" value="1" style="width:80px;">
+                <button type="button" id="bulkQtyApplyBtn" class="btn btn-outline btn-sm">
+                    <i class="fas fa-copy"></i> تطبيق على الكل
+                </button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>الصنف</th>
+                            <th style="width:18%">الباركود / الكود</th>
+                            <th style="width:12%">عدد الملصقات</th>
+                            <th style="width:8%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="selectedBody">
+                        <tr id="emptyRow">
+                            <td colspan="4">
+                                <div class="empty-state" style="padding:28px;">
+                                    <i class="fas fa-barcode"></i>
+                                    <h3>لم تُضِف أي صنف بعد</h3>
+                                    <p style="font-size:13px;color:var(--text-muted);margin-top:6px;">
+                                        ابحث أعلاه واختر الأصناف التي تريد طباعة ملصقاتها
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ العمود الجانبي ============ -->
+    <div>
+
+        <!-- معاينة الملصق -->
+        <div class="card" style="position: sticky; top: 80px; margin-bottom: 16px;">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-eye"></i> معاينة الملصق</div>
+            </div>
+            <div class="card-body">
+                <div class="preview-outer">
+                    <div id="previewWrap"></div>
+                </div>
+                <p id="previewNote" style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:6px;"></p>
+            </div>
+        </div>
+
+        <!-- إعدادات الطباعة -->
+        <div class="card" style="position: sticky; top: 80px;">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-print"></i> إعدادات الطباعة</div>
+            </div>
+            <div class="card-body">
+
+                <!-- مقاس الملصق -->
+                <div class="form-group">
+                    <label class="form-label">📐 مقاس الملصق</label>
+                    <select id="labelSize" class="form-control">
+                        {% for s in size_options %}
+                        <option value="{{ s.key }}">{{ s.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- صيغة الباركود -->
+                <div class="form-group">
+                    <label class="form-label">🔲 صيغة الباركود</label>
+                    <div class="fmt-options" id="fmtOptions">
+                        <button type="button" class="fmt-btn active" data-fmt="AUTO">تلقائي</button>
+                        <button type="button" class="fmt-btn" data-fmt="CODE128">CODE 128</button>
+                        <button type="button" class="fmt-btn" data-fmt="EAN13">EAN-13</button>
+                        <button type="button" class="fmt-btn" data-fmt="EAN8">EAN-8</button>
+                        <button type="button" class="fmt-btn" data-fmt="UPC">UPC-A</button>
+                        <button type="button" class="fmt-btn" data-fmt="CODE39">CODE 39</button>
+                    </div>
+                    <p id="fmtHint" style="font-size:11px;color:var(--text-muted);margin-top:5px;">
+                        تلقائي: يكتشف الصيغة المناسبة حسب نوع الكود
+                    </p>
+                </div>
+
+                <!-- العملة -->
+                <div class="form-group">
+                    <label class="form-label">💰 العملة</label>
+                    <input type="text" id="currencySymbol" class="form-control"
+                           value="{{ default_currency }}" maxlength="10"
+                           placeholder="ريال، $، €، ...">
+                </div>
+
+                <!-- الحقول المعروضة -->
+                <div class="form-group">
+                    <label class="form-label">📄 الحقول المعروضة</label>
+                    <div style="display:flex;flex-direction:column;gap:9px;margin-top:4px;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+                            <input type="checkbox" id="showName" checked style="width:16px;height:16px;accent-color:var(--accent);">
+                            اسم الصنف
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+                            <input type="checkbox" id="showPrice" checked style="width:16px;height:16px;accent-color:var(--accent);">
+                            السعر مع العملة
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+                            <input type="checkbox" id="showCode" style="width:16px;height:16px;accent-color:var(--accent);">
+                            كود الصنف الداخلي
+                        </label>
+                    </div>
+                </div>
+
+                <!-- الإجمالي والطباعة -->
+                <div style="padding: 10px 0; border-top: 1px solid var(--border); margin-top: 8px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;color:var(--text-muted);font-size:13px;">
+                        <span>إجمالي الملصقات</span>
+                        <span id="totalLabelsCount" style="font-weight:900;font-size:18px;color:var(--accent);">0</span>
+                    </div>
+                </div>
+
+                <button type="button" id="printBtn" class="btn btn-primary"
+                        style="width:100%;margin-top:10px;padding:14px;font-size:15px;" disabled>
+                    <i class="fas fa-print"></i> طباعة الملصقات
+                </button>
+
+                <p style="font-size:11.5px;color:var(--text-muted);margin-top:10px;line-height:1.5;">
+                    <i class="fas fa-info-circle"></i>
+                    الأصناف التي لا تحتوي على باركود سيُستخدم كودها الداخلي بدلاً من الباركود.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="printForm" action="{{ url_for('barcode_labels_print') }}" method="POST" target="_blank" style="display:none;"></form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/vendor/JsBarcode.all.min.js') }}"></script>
+<script>
+(function () {
+    'use strict';
+
+    /* =========================================================
+     * الثوابت والإعدادات
+     * ========================================================= */
+    var PRESELECT      = {{ preselect | default(none) | tojson }};
+    var LABEL_PRESETS  = {{ size_options | tojson }};
+    var PX_PER_MM      = 3.7795;
+    var PREVIEW_MAX_W  = 290; // أقصى عرض معاينة (px)
+
+    var FORMAT_HINTS = {
+        'AUTO'   : 'تلقائي: يكتشف الصيغة المناسبة حسب نوع الكود',
+        'CODE128': 'CODE 128: يقبل أحرفاً وأرقاماً — الأكثر شيوعاً',
+        'EAN13'  : 'EAN-13: يتطلب 13 رقماً بالضبط',
+        'EAN8'   : 'EAN-8: يتطلب 8 أرقام بالضبط',
+        'UPC'    : 'UPC-A: يتطلب 12 رقماً بالضبط',
+        'CODE39' : 'CODE 39: أحرف كبيرة وأرقام وبعض الرموز فقط',
+    };
+
+    /* =========================================================
+     * الحالة العامة
+     * ========================================================= */
+    var selected        = {};    // id -> {id, name, code, barcode, price, qty}
+    var previewId       = null;
+    var activeResultIdx = -1;
+    var lastResults     = [];
+    var searchTimer     = null;
+    var selectedFormat  = 'AUTO';
+
+    var E = {
+        search      : document.getElementById('productSearch'),
+        results     : document.getElementById('searchResults'),
+        body        : document.getElementById('selectedBody'),
+        preview     : document.getElementById('previewWrap'),
+        previewNote : document.getElementById('previewNote'),
+        labelSize   : document.getElementById('labelSize'),
+        showName    : document.getElementById('showName'),
+        showPrice   : document.getElementById('showPrice'),
+        showCode    : document.getElementById('showCode'),
+        currency    : document.getElementById('currencySymbol'),
+        fmtHint     : document.getElementById('fmtHint'),
+        totalCount  : document.getElementById('totalLabelsCount'),
+        totalBadge  : document.getElementById('totalBadge'),
+        printBtn    : document.getElementById('printBtn'),
+        printForm   : document.getElementById('printForm'),
+        bulkQtyBar  : document.getElementById('bulkQtyBar'),
+        bulkQtyInput: document.getElementById('bulkQtyInput'),
+        bulkQtyBtn  : document.getElementById('bulkQtyApplyBtn'),
+    };
+
+    /* =========================================================
+     * اكتشاف صيغة الباركود
+     * ========================================================= */
+    function detectFormat(code) {
+        if (!code) return 'CODE128';
+        code = String(code).trim();
+        if (/^\d{13}$/.test(code)) return 'EAN13';
+        if (/^\d{12}$/.test(code)) return 'UPC';
+        if (/^\d{8}$/.test(code))  return 'EAN8';
+        // CODE39 فقط للأكواد التي تبدأ بحرف كبير وتحتوي على أحرف — الأرقام القصيرة تذهب لـ CODE128
+        if (/^[A-Z][A-Z0-9\-\.\ \$\/\+\%]+$/.test(code) && code.length >= 3) return 'CODE39';
+        return 'CODE128';
+    }
+
+    function resolveFormat(code) {
+        return (selectedFormat === 'AUTO') ? detectFormat(code) : selectedFormat;
+    }
+
+    /* محاولة رسم الباركود مع Fallback تلقائي */
+    function drawBarcode(svg, code, fmt, bcH, barW) {
+        code = String(code || '').trim() || '0';
+        var opts = {
+            format: fmt, displayValue: false,
+            margin: 0, marginTop: 1, marginBottom: 0,
+            height: bcH, width: barW,
+            background: '#ffffff', lineColor: '#000000',
+        };
+        try { JsBarcode(svg, code, opts); return true; } catch(e1) {}
+        if (fmt !== 'CODE128') {
+            try { opts.format='CODE128'; JsBarcode(svg, code, opts); return true; } catch(e2) {}
+        }
+        // خطة C: رسالة خطأ بدل SVG
+        var d = document.createElement('div');
+        d.style.cssText = 'font-size:8px;color:#c00;border:0.5px solid #fbb;border-radius:2px;padding:2px 4px;margin:2px auto;';
+        d.textContent = '⚠ كود لا يمكن تحويله: ' + code;
+        if (svg.parentNode) svg.parentNode.replaceChild(d, svg);
+        return false;
+    }
+
+    /* =========================================================
+     * إدارة الأصناف
+     * ========================================================= */
+    function addProduct(p) {
+        var id = String(p.id);
+        if (selected[id]) {
+            selected[id].qty = Math.min(500, selected[id].qty + 1);
+        } else {
+            selected[id] = {
+                id: id, name: p.name,
+                code: p.code || '',
+                barcode: p.barcode || p.code || '',
+                price: p.price || 0,
+                qty: 1,
+            };
+        }
+        previewId = id;
+        renderTable();
+    }
+
+    function removeProduct(id) {
+        delete selected[id];
+        if (previewId === id) previewId = null;
+        renderTable();
+    }
+
+    function setQty(id, val) {
+        var q = Math.max(1, Math.min(500, parseInt(val, 10) || 1));
+        if (selected[id]) selected[id].qty = q;
+        updateTotals();
+        if (id === previewId) renderPreview();
+    }
+
+    /* تطبيق نفس عدد الملصقات على كل الأصناف المختارة دفعة واحدة */
+    function applyQtyToAll(val) {
+        var q = Math.max(1, Math.min(500, parseInt(val, 10) || 1));
+        Object.keys(selected).forEach(function (id) { selected[id].qty = q; });
+        renderTable();
+    }
+
+    /* =========================================================
+     * جدول الأصناف المختارة
+     * ========================================================= */
+    function renderTable() {
+        var ids = Object.keys(selected);
+        if (!ids.length) {
+            E.body.innerHTML =
+                '<tr id="emptyRow"><td colspan="4"><div class="empty-state" style="padding:28px;">' +
+                '<i class="fas fa-barcode"></i><h3>لم تُضِف أي صنف بعد</h3>' +
+                '<p style="font-size:13px;color:var(--text-muted);margin-top:6px;">ابحث أعلاه واختر الأصناف التي تريد طباعة ملصقاتها</p>' +
+                '</div></td></tr>';
+            previewId = null;
+            updateTotals();
+            renderPreview();
+            return;
+        }
+        if (!previewId || !selected[previewId]) previewId = ids[0];
+
+        E.body.innerHTML = ids.map(function (id) {
+            var it = selected[id];
+            var cls = id === previewId ? ' active-preview' : '';
+            return '<tr class="selected-row' + cls + '" data-id="' + id + '">' +
+                '<td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(it.name) + '">' + esc(it.name) + '</td>' +
+                '<td style="font-family:monospace;font-size:12px;color:var(--text-muted);">' + esc(it.barcode || it.code || '-') + '</td>' +
+                '<td><input type="number" class="form-control qty-input" data-id="' + id + '" value="' + it.qty + '" min="1" max="500" style="width:100%;text-align:center;"></td>' +
+                '<td><button type="button" class="btn btn-danger btn-xs" data-del="' + id + '"><i class="fas fa-trash"></i></button></td>' +
+                '</tr>';
+        }).join('');
+
+        E.body.querySelectorAll('.qty-input').forEach(function (inp) {
+            inp.addEventListener('input', function () { setQty(this.dataset.id, this.value); });
+            inp.addEventListener('click', function (e) { e.stopPropagation(); });
+        });
+        E.body.querySelectorAll('[data-del]').forEach(function (btn) {
+            btn.addEventListener('click', function (e) { e.stopPropagation(); removeProduct(this.dataset.del); });
+        });
+        E.body.querySelectorAll('.selected-row').forEach(function (row) {
+            row.addEventListener('click', function () {
+                previewId = this.dataset.id;
+                E.body.querySelectorAll('.selected-row').forEach(function (r) {
+                    r.classList.toggle('active-preview', r.dataset.id === previewId);
+                });
+                renderPreview();
+            });
+        });
+        updateTotals();
+        renderPreview();
+    }
+
+    function updateTotals() {
+        var count = Object.keys(selected).length;
+        var total = Object.values(selected).reduce(function (s, it) { return s + (it.qty || 1); }, 0);
+        E.totalCount.textContent = total;
+        E.printBtn.disabled = (total <= 0);
+        E.totalBadge.textContent = total;
+        E.totalBadge.style.display = total > 0 ? '' : 'none';
+        E.bulkQtyBar.style.display = count > 1 ? 'flex' : 'none';
+    }
+
+    /* =========================================================
+     * معاينة الملصق
+     * ========================================================= */
+    function renderPreview() {
+        var presetKey = E.labelSize.value;
+        var preset    = LABEL_PRESETS.find(function (p) { return p.key === presetKey; }) || LABEL_PRESETS[0];
+        if (!preset) return;
+
+        var item     = (previewId && selected[previewId]) ? selected[previewId] : null;
+        var isSample = !item;
+        if (isSample) {
+            item = { name: 'اسم الصنف التجريبي', code: 'DEMO-001', barcode: '6221234567890', price: 25 };
+            E.previewNote.textContent = 'معاينة تجريبية — اختر صنفاً من الجدول';
+        } else {
+            E.previewNote.textContent = 'معاينة: ' + item.name;
+        }
+
+        var scale  = Math.min(5.5, PREVIEW_MAX_W / preset.w_mm);
+        var fMul   = scale / PX_PER_MM; // مُعامل حجم الخط (px per mm)
+
+        E.preview.style.width  = (preset.w_mm * scale) + 'px';
+        E.preview.style.height = (preset.h_mm * scale) + 'px';
+
+        var showName  = E.showName.checked;
+        var showPrice = E.showPrice.checked;
+        var showCode  = E.showCode.checked;
+        var currency  = E.currency.value.trim() || '';
+
+        // بناء HTML داخل الملصق
+        var html = '';
+        if (showName) html += '<div class="pv-name"  style="font-size:' + (8.5 * fMul).toFixed(1) + 'px;">' + esc(item.name) + '</div>';
+        html += '<svg class="pv-barcode"></svg>';
+        html += '<div class="pv-bnum" style="font-size:' + (6.5 * fMul).toFixed(1) + 'px;">' + esc(item.barcode || item.code || '') + '</div>';
+        if (showCode && item.code)
+            html += '<div class="pv-code" style="font-size:' + (6.5 * fMul).toFixed(1) + 'px;">' + esc(item.code) + '</div>';
+        if (showPrice)
+            html += '<div class="pv-price" style="font-size:' + (9.5 * fMul).toFixed(1) + 'px;">' +
+                    Number(item.price || 0).toFixed(2) +
+                    (currency ? '<span style="font-size:' + (7 * fMul).toFixed(1) + 'px;font-weight:600;color:#444;margin-right:1px;"> ' + esc(currency) + '</span>' : '') +
+                    '</div>';
+        E.preview.innerHTML = html;
+
+        // رسم الباركود في المعاينة
+        var svg  = E.preview.querySelector('.pv-barcode');
+        var code = String(item.barcode || item.code || '0');
+        var fmt  = resolveFormat(code);
+
+        // حساب ارتفاع الباركود
+        var totalPxH  = preset.h_mm * scale;
+        var textH     = 0;
+        if (showName)  textH += 8.5 * fMul + 2;
+        textH += 6.5 * fMul + 2; // رقم الباركود دائماً
+        if (showCode)  textH += 6.5 * fMul + 1;
+        if (showPrice) textH += 9.5 * fMul + 1;
+        var bcH = Math.max(14, totalPxH - textH - 4);
+
+        drawBarcode(svg, code, fmt, bcH, Math.max(0.8, scale * 0.38));
+    }
+
+    /* =========================================================
+     * خيارات الصيغة
+     * ========================================================= */
+    document.getElementById('fmtOptions').querySelectorAll('.fmt-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.fmt-btn').forEach(function (b) { b.classList.remove('active'); });
+            this.classList.add('active');
+            selectedFormat = this.dataset.fmt;
+            E.fmtHint.textContent = FORMAT_HINTS[selectedFormat] || '';
+            renderPreview();
+        });
+    });
+
+    /* =========================================================
+     * البحث
+     * ========================================================= */
+    function openResults()  { E.results.style.display = 'block'; }
+    function closeResults() { E.results.style.display = 'none'; activeResultIdx = -1; }
+
+    function runSearch(q) {
+        openResults();
+        E.results.innerHTML = '<div class="search-results-empty"><i class="fas fa-spinner fa-spin"></i> جارِ البحث...</div>';
+        var params = new URLSearchParams();
+        if (q && q.trim()) params.set('q', q.trim());
+        params.set('limit', '60');
+        fetch('/products/search?' + params)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var items = Array.isArray(data) ? data : (data.items || []);
+                lastResults     = items;
+                activeResultIdx = -1;
+                if (!items.length) {
+                    E.results.innerHTML = '<div class="search-results-empty">لا توجد نتائج</div>';
+                    return;
+                }
+                var html = '<div class="search-results-count">تم العثور على ' + items.length + ' صنف</div>';
+                html += items.map(function (p, i) {
+                    return '<div class="pick-item" data-idx="' + i + '">' +
+                        '<span class="pick-icon">📦</span>' +
+                        '<div class="pick-body">' +
+                            '<div class="pick-name">' + esc(p.name) + '</div>' +
+                            '<div class="pick-meta">كود: ' + esc(p.code || '-') + ' | باركود: ' + esc(p.barcode || '-') + '</div>' +
+                        '</div>' +
+                        '<span class="pick-price">' + Number(p.price || 0).toFixed(2) + '</span>' +
+                        '</div>';
+                }).join('');
+                E.results.innerHTML = html;
+                E.results.querySelectorAll('.pick-item').forEach(function (el) {
+                    el.addEventListener('click', function () { pick(parseInt(this.dataset.idx, 10)); });
+                    el.addEventListener('mouseenter', function () { setActive(parseInt(this.dataset.idx, 10)); });
+                });
+            })
+            .catch(function () {
+                E.results.innerHTML = '<div class="search-results-error"><i class="fas fa-exclamation-triangle"></i> تعذر البحث</div>';
+            });
+    }
+
+    function setActive(idx) {
+        activeResultIdx = idx;
+        E.results.querySelectorAll('.pick-item').forEach(function (el) {
+            var on = parseInt(el.dataset.idx, 10) === idx;
+            el.classList.toggle('is-active', on);
+            if (on) el.scrollIntoView({ block: 'nearest' });
+        });
+    }
+
+    function pick(idx) {
+        var p = lastResults[idx];
+        if (!p) return;
+        addProduct(p);
+        E.search.value = '';
+        closeResults();
+    }
+
+    E.search.addEventListener('input', function () {
+        clearTimeout(searchTimer);
+        var q = this.value;
+        searchTimer = setTimeout(function () { runSearch(q); }, 200);
+    });
+    E.search.addEventListener('focus', function () { runSearch(this.value); });
+    E.search.addEventListener('keydown', function (e) {
+        if (E.results.style.display !== 'block' || !lastResults.length) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); setActive(Math.min(lastResults.length - 1, activeResultIdx + 1)); }
+        else if (e.key === 'ArrowUp')  { e.preventDefault(); setActive(Math.max(0, activeResultIdx - 1)); }
+        else if (e.key === 'Enter')    { e.preventDefault(); pick(activeResultIdx >= 0 ? activeResultIdx : 0); }
+        else if (e.key === 'Escape')   { closeResults(); }
+    });
+    document.addEventListener('click', function (e) {
+        if (!E.search.contains(e.target) && !E.results.contains(e.target)) closeResults();
+    });
+
+    /* =========================================================
+     * مستمعو التغييرات الفورية
+     * ========================================================= */
+    [E.labelSize, E.showName, E.showPrice, E.showCode].forEach(function (el) {
+        el.addEventListener('change', renderPreview);
+    });
+    E.currency.addEventListener('input', renderPreview);
+
+    /* تطبيق نفس عدد الملصقات على كل الأصناف دفعة واحدة */
+    E.bulkQtyBtn.addEventListener('click', function () {
+        applyQtyToAll(E.bulkQtyInput.value);
+    });
+    E.bulkQtyInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); applyQtyToAll(this.value); }
+    });
+
+    /* =========================================================
+     * إرسال نموذج الطباعة
+     * ========================================================= */
+    E.printBtn.addEventListener('click', function () {
+        var ids = Object.keys(selected);
+        if (!ids.length) return;
+        E.printForm.innerHTML = '';
+        function h(name, val) {
+            var i = document.createElement('input');
+            i.type = 'hidden'; i.name = name; i.value = val;
+            E.printForm.appendChild(i);
+        }
+        ids.forEach(function (id) {
+            h('product_id[]', selected[id].id);
+            h('qty[]',        selected[id].qty);
+        });
+        h('label_size',   E.labelSize.value);
+        h('barcode_fmt',  selectedFormat);
+        h('currency',     E.currency.value.trim());
+        h('show_name',    E.showName.checked  ? '1' : '0');
+        h('show_price',   E.showPrice.checked ? '1' : '0');
+        h('show_code',    E.showCode.checked  ? '1' : '0');
+        E.printForm.submit();
+    });
+
+    /* =========================================================
+     * أدوات مساعدة
+     * ========================================================= */
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    /* =========================================================
+     * التشغيل الأولي
+     * ========================================================= */
+    if (PRESELECT) addProduct(PRESELECT);
+    renderTable();
+})();
+</script>
+{% endblock %}

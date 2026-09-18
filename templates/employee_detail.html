@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-id-badge' %}
+{% block title %}{{ emp.name }}{% endblock %}
+{% block page_title %}بطاقة الموظف{% endblock %}
+{% block breadcrumb %}الموظفون / {{ emp.name }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('edit_employee', id=emp.id) }}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> تعديل</a>
+<a href="{{ url_for('employees') }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-right"></i> رجوع</a>
+{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:300px 1fr;gap:20px;">
+    <!-- Profile Card -->
+    <div>
+        <div class="card">
+            <div class="card-body" style="text-align:center;padding:28px 20px;">
+                <div style="width:72px;height:72px;background:linear-gradient(135deg,var(--accent),#e07b00);
+                     border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+                     font-size:28px;font-weight:900;color:#0f1422;margin-bottom:14px;">
+                    {{ emp.name[0] }}
+                </div>
+                <div style="font-size:18px;font-weight:800;margin-bottom:4px;">{{ emp.name }}</div>
+                <div style="color:var(--text-muted);font-size:13px;">{{ emp.position or 'موظف' }}</div>
+                <div style="margin-top:10px;">
+                    <span class="badge {{ 'badge-success' if emp.is_active else 'badge-danger' }}">
+                        {{ 'نشط' if emp.is_active else 'غير نشط' }}
+                    </span>
+                </div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding:16px 20px;">
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    {% if emp.phone %}
+                    <div style="display:flex;align-items:center;gap:10px;font-size:13px;">
+                        <i class="fas fa-phone" style="color:var(--success);width:16px;"></i>
+                        <span>{{ emp.phone }}</span>
+                    </div>
+                    {% endif %}
+                    {% if emp.email %}
+                    <div style="display:flex;align-items:center;gap:10px;font-size:13px;">
+                        <i class="fas fa-envelope" style="color:var(--info);width:16px;"></i>
+                        <span>{{ emp.email }}</span>
+                    </div>
+                    {% endif %}
+                    {% if emp.department %}
+                    <div style="display:flex;align-items:center;gap:10px;font-size:13px;">
+                        <i class="fas fa-sitemap" style="color:var(--purple);width:16px;"></i>
+                        <span>{{ emp.department }}</span>
+                    </div>
+                    {% endif %}
+                    {% if emp.branch %}
+                    <div style="display:flex;align-items:center;gap:10px;font-size:13px;">
+                        <i class="fas fa-building" style="color:var(--accent);width:16px;"></i>
+                        <span>{{ emp.branch.name }}</span>
+                    </div>
+                    {% endif %}
+                    {% if emp.hire_date %}
+                    <div style="display:flex;align-items:center;gap:10px;font-size:13px;">
+                        <i class="fas fa-calendar" style="color:var(--text-muted);width:16px;"></i>
+                        <span>{{ emp.hire_date.strftime('%Y/%m/%d') }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info -->
+    <div>
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fas fa-money-bill-wave"></i></div>
+                <div>
+                    <div class="stat-value">{{ "{:,.0f}".format(emp.salary) }}</div>
+                    <div class="stat-label">الراتب الأساسي</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="fas fa-code"></i></div>
+                <div>
+                    <div class="stat-value" style="font-size:18px;">{{ emp.code or '—' }}</div>
+                    <div class="stat-label">كود الموظف</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon gold"><i class="fas fa-id-card"></i></div>
+                <div>
+                    <div class="stat-value" style="font-size:18px;">{{ emp.position or '—' }}</div>
+                    <div class="stat-label">المسمى الوظيفي</div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-info-circle"></i> البيانات الكاملة</div>
+            <a href="{{ url_for('edit_employee', id=emp.id) }}" class="btn btn-outline btn-sm"><i class="fas fa-edit"></i> تعديل</a>
+            </div>
+            <div class="card-body">
+                <div class="form-grid-2">
+                    {% for label, value in [
+                        ('الاسم الكامل', emp.name), ('الكود', emp.code or '—'),
+                        ('الوظيفة', emp.position or '—'), ('القسم', emp.department or '—'),
+                        ('الهاتف', emp.phone or '—'), ('البريد الإلكتروني', emp.email or '—'),
+                        ('الفرع', emp.branch.name if emp.branch else '—'),
+                        ('تاريخ التعيين', emp.hire_date.strftime('%Y/%m/%d') if emp.hire_date else '—'),
+                    ] %}
+                    <div style="padding:12px;background:rgba(255,255,255,.03);border-radius:8px;border:1px solid var(--border);">
+                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">{{ label }}</div>
+                        <div style="font-weight:600;font-size:14px;">{{ value }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-cash-register' %}
+{% block title %}المبيعات{% endblock %}
+{% block page_title %}سجل المبيعات{% endblock %}
+{% block breadcrumb %}قائمة فواتير المبيعات{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('new_sale') }}" class="btn btn-primary"><i class="fas fa-plus"></i> فاتورة جديدة</a>
+{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead><tr>
+                <th>رقم الفاتورة</th><th>العميل</th><th>المخزن</th>
+                <th>المجموع</th><th>المدفوع</th><th>المتبقي</th>
+                <th>التاريخ</th><th>الإجراءات</th>
+            </tr></thead>
+            <tbody>
+                {% for sale in sales.items %}
+                <tr>
+                    <td style="font-weight:700; color:var(--accent);">{{ sale.invoice_number }}{% if sale.id in fully_settled_sale_ids %} <span class="badge badge-success" style="font-size:10px;">تم السداد</span>{% endif %}{% if sale.id in returned_sale_ids %} <span class="badge badge-warning" style="font-size:10px;">تم الارتجاع</span>{% endif %}</td>
+                    <td>{{ sale.customer.name if sale.customer else 'نقدي' }}</td>
+                    <td>{{ sale.warehouse.name if sale.warehouse else '—' }}</td>
+                    <td style="font-weight:700;">{{ "{:,.2f}".format(sale.total) }}</td>
+                    <td style="color:var(--success);">{{ "{:,.2f}".format(sale.paid) }}</td>
+                    <td style="color:{{ 'var(--success)' if sale.remaining == 0 else 'var(--danger)' }};font-weight:{{ '700' if sale.remaining == 0 else 'normal' }};">
+                        {% if sale.remaining == 0 %}
+                            تم السداد
+                        {% else %}
+                            {{ "{:,.2f}".format(sale.remaining) }}
+                        {% endif %}
+                    </td>
+                    <td style="color:var(--text-muted);">{{ sale.date.strftime('%Y/%m/%d') }}</td>
+                    <td style="white-space:nowrap;">
+                        <a href="{{ url_for('sale_detail', id=sale.id) }}" class="btn btn-outline btn-xs"><i class="fas fa-eye"></i></a>
+                        {% if can('sales_purchases_delete') %}
+                        <form method="POST" action="{{ url_for('delete_sale', id=sale.id) }}" style="display:inline;" onsubmit="return confirm('تأكيد حذف فاتورة المبيعات {{ sale.invoice_number }}؟');">
+                            <button type="submit" class="btn btn-danger btn-xs" title="حذف الفاتورة"><i class="fas fa-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8"><div class="empty-state"><i class="fas fa-receipt"></i><h3>لا توجد فواتير</h3></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="pagination">
+    {% if sales.has_prev %}<a href="{{ url_for('sales', page=sales.prev_num) }}" class="page-link">السابق</a>{% endif %}
+    {% for p in sales.iter_pages() %}
+        {% if p %}<a href="{{ url_for('sales', page=p) }}" class="page-link {{ 'active' if p == sales.page }}">{{ p }}</a>
+        {% else %}<span class="page-link">...</span>{% endif %}
+    {% endfor %}
+    {% if sales.has_next %}<a href="{{ url_for('sales', page=sales.next_num) }}" class="page-link">التالي</a>{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-balance-scale' %}
+{% block title %}تقرير الأرباح والخسائر{% endblock %}
+{% block page_title %}تقرير الأرباح والخسائر{% endblock %}
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-outline"><i class="fas fa-print"></i> طباعة</button>
+<a href="{{ url_for('reports') }}" class="btn btn-outline"><i class="fas fa-arrow-right"></i> رجوع</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-body">
+        <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+            <div><label class="form-label">من تاريخ</label><input type="date" name="date_from" value="{{ date_from }}" class="form-control"></div>
+            <div><label class="form-label">إلى تاريخ</label><input type="date" name="date_to" value="{{ date_to }}" class="form-control"></div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> عرض التقرير</button>
+        </form>
+    </div>
+</div>
+
+<!-- P&L Summary Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fas fa-arrow-up"></i></div>
+        <div><div class="stat-value" style="color:var(--success);">{{ "{:,.2f}".format(total_sales) }}</div><div class="stat-label">صافي إيرادات المبيعات</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-arrow-down"></i></div>
+        <div><div class="stat-value" style="color:var(--danger);">{{ "{:,.2f}".format(total_purchases) }}</div><div class="stat-label">صافي تكلفة المشتريات</div></div>
+    </div>
+    <div class="stat-card" style="border-color: {% if gross_profit >= 0 %}rgba(16,185,129,0.4){% else %}rgba(239,68,68,0.4){% endif %}">
+        <div class="stat-icon {{ 'green' if gross_profit >= 0 else 'red' }}"><i class="fas fa-chart-line"></i></div>
+        <div><div class="stat-value" style="color:{% if gross_profit >= 0 %}var(--success){% else %}var(--danger){% endif %};">{{ "{:,.2f}".format(gross_profit) }}</div><div class="stat-label">مجمل الربح</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="fas fa-minus-circle"></i></div>
+        <div><div class="stat-value" style="color:var(--danger);">{{ "{:,.2f}".format(total_expenses) }}</div><div class="stat-label">المصاريف التشغيلية</div></div>
+    </div>
+    <div class="stat-card" style="border-color: {% if net_profit >= 0 %}rgba(245,158,11,0.5){% else %}rgba(239,68,68,0.5){% endif %}">
+        <div class="stat-icon {{ 'gold' if net_profit >= 0 else 'red' }}"><i class="fas fa-{% if net_profit >= 0 %}trophy{% else %}exclamation-triangle{% endif %}"></i></div>
+        <div>
+            <div class="stat-value" style="color:{% if net_profit >= 0 %}var(--accent){% else %}var(--danger){% endif %}; font-size: 22px;">{{ "{:,.2f}".format(net_profit) }}</div>
+            <div class="stat-label">صافي {% if net_profit >= 0 %}الربح{% else %}الخسارة{% endif %}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Visual P&L Statement -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+    <div class="card">
+        <div class="card-header"><div class="card-title" style="color:var(--success);"><i class="fas fa-plus-circle"></i> الإيرادات</div></div>
+        <div class="card-body">
+            <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+                <span>إجمالي المبيعات</span>
+                <span style="font-weight:700;color:var(--success);">{{ "{:,.2f}".format(total_sales_gross) }}</span>
+            </div>
+            {% if total_sale_returns > 0 %}
+            <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--danger);">مرتجعات المبيعات</span>
+                <span style="font-weight:700;color:var(--danger);">- {{ "{:,.2f}".format(total_sale_returns) }}</span>
+            </div>
+            {% endif %}
+            <div style="display:flex;justify-content:space-between;padding:14px 0;font-size:16px;font-weight:800;border-top:2px solid var(--border);">
+                <span>صافي الإيرادات</span>
+                <span style="color:var(--success);">{{ "{:,.2f}".format(total_sales) }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div class="card-title" style="color:var(--danger);"><i class="fas fa-minus-circle"></i> المصاريف والتكاليف</div></div>
+        <div class="card-body">
+            <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+                <span>إجمالي المشتريات</span>
+                <span style="font-weight:700;color:var(--danger);">{{ "{:,.2f}".format(total_purchases_gross) }}</span>
+            </div>
+            {% if total_purchase_returns > 0 %}
+            <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--success);">مرتجعات المشتريات</span>
+                <span style="font-weight:700;color:var(--success);">- {{ "{:,.2f}".format(total_purchase_returns) }}</span>
+            </div>
+            {% endif %}
+            <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+                <span>صافي تكلفة البضاعة</span>
+                <span style="font-weight:700;color:var(--danger);">{{ "{:,.2f}".format(total_purchases) }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+                <span>المصاريف التشغيلية</span>
+                <span style="font-weight:700;color:var(--danger);">{{ "{:,.2f}".format(total_expenses) }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:14px 0;font-size:16px;font-weight:800;border-top:2px solid var(--border);">
+                <span>الإجمالي</span>
+                <span style="color:var(--danger);">{{ "{:,.2f}".format(total_purchases + total_expenses) }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Net Profit Banner -->
+<div style="background: {% if net_profit >= 0 %}linear-gradient(135deg, rgba(16,185,129,0.15), rgba(245,158,11,0.1)){% else %}linear-gradient(135deg, rgba(239,68,68,0.15), rgba(220,38,38,0.05)){% endif %};
+     border: 1px solid {% if net_profit >= 0 %}rgba(16,185,129,0.4){% else %}rgba(239,68,68,0.4){% endif %};
+     border-radius: var(--radius); padding: 28px; text-align: center; margin-bottom: 20px;">
+    <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 8px;">صافي {% if net_profit >= 0 %}الربح{% else %}الخسارة{% endif %} للفترة من {{ date_from }} إلى {{ date_to }}</div>
+    <div style="font-size: 42px; font-weight: 900; color: {% if net_profit >= 0 %}var(--success){% else %}var(--danger){% endif %}; font-family: 'Tajawal', sans-serif;">
+        {% if net_profit >= 0 %}+{% endif %}{{ "{:,.2f}".format(net_profit) }}
+    </div>
+    {% if total_sales > 0 %}
+    <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
+        هامش الربح الصافي: <strong style="color: {% if net_profit >= 0 %}var(--success){% else %}var(--danger){% endif %};">{{ "{:.1f}".format((net_profit / total_sales) * 100) }}%</strong>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Expense Breakdown -->
+{% if expenses %}
+<div class="card">
+    <div class="card-header"><div class="card-title"><i class="fas fa-list"></i> تفاصيل المصاريف</div></div>
+    <div class="table-container"><table>
+        <thead><tr><th>التاريخ</th><th>التصنيف</th><th>الوصف</th><th>المبلغ</th></tr></thead>
+        <tbody>
+            {% for e in expenses %}
+            <tr>
+                <td>{{ e.date.strftime('%Y/%m/%d') }}</td>
+                <td><span class="badge badge-warning">{{ e.category }}</span></td>
+                <td>{{ e.description or '—' }}</td>
+                <td style="color:var(--danger);font-weight:700;">{{ "{:,.2f}".format(e.amount) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table></div>
+</div>
+{% endif %}
+{% endblock %}

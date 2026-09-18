@@ -1,0 +1,26 @@
+<script>
+(function () {
+    function fitPosReceiptPage() {
+        if (!document.body || !document.body.classList.contains('pos')) return;
+        var el = document.querySelector('.receipt') || document.querySelector('.invoice') || document.querySelector('.sheet');
+        if (!el) return;
+        var px = Math.max(el.scrollHeight, el.offsetHeight, el.getBoundingClientRect().height);
+        var mm = Math.ceil((px * 25.4) / 96) + 8;
+        if (mm < 60) mm = 60;
+        if (mm > 1800) mm = 1800;
+        var w = document.body.classList.contains('pos58') ? '58mm' : '80mm';
+        var old = document.getElementById('pos-page-fit');
+        if (old) old.remove();
+        var st = document.createElement('style');
+        st.id = 'pos-page-fit';
+        st.textContent = '@page{size:' + w + ' ' + mm + 'mm;margin:0}';
+        document.head.appendChild(st);
+    }
+    window.erpFitPosReceiptPage = fitPosReceiptPage;
+    window.addEventListener('load', function () {
+        fitPosReceiptPage();
+        setTimeout(fitPosReceiptPage, 200);
+    });
+    window.addEventListener('beforeprint', fitPosReceiptPage);
+})();
+</script>

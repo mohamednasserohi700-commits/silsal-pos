@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-user-edit' %}
+{% block title %}تعديل مستخدم{% endblock %}
+{% block page_title %}تعديل مستخدم: {{ u.username }}{% endblock %}
+{% block breadcrumb %}المستخدمون / تعديل{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:640px;">
+    <div class="card-header"><div class="card-title"><i class="fas fa-user-cog"></i> بيانات المستخدم والصلاحيات</div></div>
+    <div class="card-body">
+        <form method="POST">
+            <div class="form-group">
+                <label class="form-label">اسم المستخدم</label>
+                <input type="text" class="form-control" value="{{ u.username }}" disabled style="opacity:.75;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">الاسم الكامل</label>
+                <input type="text" name="full_name" class="form-control" value="{{ u.full_name or '' }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">كلمة مرور جديدة (اتركها فارغة إن لم تتغير)</label>
+                <input type="password" name="password" class="form-control" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+                <label class="form-label">الدور *</label>
+                <select name="role" class="form-control" required>
+                    <option value="user" {{ 'selected' if u.role=='user' }}>مستخدم عادي</option>
+                    <option value="manager" {{ 'selected' if u.role=='manager' }}>مشرف</option>
+                    <option value="admin" {{ 'selected' if u.role=='admin' }}>مدير النظام</option>
+                    {% if current_user.role == 'developer' %}
+                    <option value="developer" {{ 'selected' if u.role=='developer' }}>مطوّر النظام (كامل الصلاحيات)</option>
+                    {% endif %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">الفرع</label>
+                <select name="branch_id" class="form-control">
+                    <option value="">— بدون فرع —</option>
+                    {% for b in branches %}<option value="{{ b.id }}" {{ 'selected' if u.branch_id==b.id }}>{{ b.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" name="is_active" {{ 'checked' if u.is_active }}> حساب نشط
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">صلاحيات يدوية (اختياري)</label>
+                <small style="display:block;color:var(--text-muted);margin-bottom:10px;font-size:11px;">
+                    يُعرض أدناه ما يملكه المستخدم فعلياً: إن لم يكن هناك JSON محفوظ يُظهر صلاحيات <strong>الدور الافتراضي</strong> حتى تزيل أو تضيف. إن أزلت كل التحديدات وضغطت حفظ يُعاد استخدام الدور الافتراضي فقط.
+                    حذف السجلات يتطلب صلاحية «حذف السجلات»، وحذف دفعات كشف الحساب صلاحية «حذف دفعات كشف الحساب»، وحذف فواتير المرتجعات صلاحية «حذف فواتير المرتجعات»، وحذف المستخدمين صلاحية «حذف مستخدمين».
+                </small>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
+                    {% for key, label in permission_keys_edit %}
+                    <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;">
+                        <input type="checkbox" name="perm" value="{{ key }}" {{ 'checked' if key in selected_perms }}>
+                        {{ label }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+                <a href="{{ url_for('users') }}" class="btn btn-outline">رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>
+<script type="application/json" id="erpDefaultPerms">{{ default_perms_by_role | tojson }}</script>
+<script>
+(function () {
+    var MAP = {};
+    try { MAP = JSON.parse(document.getElementById('erpDefaultPerms').textContent || '{}'); } catch (e) {}
+    var roleSel = document.querySelector('select[name="role"]');
+    if (!roleSel) return;
+    function apply() {
+        var keys = MAP[roleSel.value] || [];
+        document.querySelectorAll('input[name="perm"]').forEach(function (cb) {
+            cb.checked = keys.indexOf(cb.value) >= 0;
+        });
+    }
+    roleSel.addEventListener('change', apply);
+})();
+</script>
+{% endblock %}

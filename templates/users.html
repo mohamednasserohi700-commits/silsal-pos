@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-user-cog' %}
+{% block title %}المستخدمون{% endblock %}
+{% block page_title %}إدارة المستخدمين{% endblock %}
+
+{% block extra_styles %}<style>@media(max-width:900px){.users-grid{grid-template-columns:1fr!important;}}</style>{% endblock %}
+{% block content %}
+<div class="users-grid" style="display:grid;grid-template-columns:1fr 400px;gap:20px;align-items:start;">
+<div class="card"><div class="table-container"><table>
+    <thead><tr><th>اسم المستخدم</th><th>الاسم الكامل</th><th>الصلاحية</th><th>الفرع</th><th>الحالة</th><th></th></tr></thead>
+    <tbody>
+        {% for u in users %}
+        <tr>
+            <td style="font-weight:600;font-family:monospace;">{{ u.username }}</td>
+            <td>{{ u.full_name or '—' }}</td>
+            <td>
+                {% if u.role == 'developer' %}<span class="badge badge-purple">مطوّر النظام</span>
+                {% elif u.role == 'admin' %}<span class="badge badge-danger">مدير النظام</span>
+                {% elif u.role == 'manager' %}<span class="badge badge-warning">مشرف</span>
+                {% else %}<span class="badge badge-info">مستخدم</span>{% endif %}
+            </td>
+            <td>{{ u.branch.name if u.branch else '—' }}</td>
+            <td><span class="badge {{ 'badge-success' if u.is_active else 'badge-secondary' }}">{{ 'نشط' if u.is_active else 'معطل' }}</span></td>
+            <td style="white-space:nowrap;">
+                <a href="{{ url_for('edit_user', id=u.id) }}" class="btn btn-sm btn-outline"><i class="fas fa-edit"></i> تعديل</a>
+                {% if u.id != current_user.id %}
+                <form method="POST" action="{{ url_for('toggle_user', id=u.id) }}" style="display:inline;" onsubmit="return confirm('تأكيد تغيير حالة الحساب؟');">
+                    <button type="submit" class="btn btn-sm btn-warning">{{ 'تعطيل' if u.is_active else 'تفعيل' }}</button>
+                </form>
+                {% endif %}
+                {% if u.id != current_user.id and can_delete_users and (u.role != 'developer' or current_user.role == 'developer') %}
+                <form method="POST" action="{{ url_for('delete_user_account', id=u.id) }}" style="display:inline;" onsubmit="return confirm('حذف المستخدم؟ إن وُجدت سجلات مرتبطة قد يُعطّل الحساب بدلاً من الحذف النهائي.');">
+                    <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table></div></div>
+
+<div class="card">
+    <div class="card-header"><div class="card-title"><i class="fas fa-user-plus"></i> إضافة مستخدم جديد</div></div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('add_user') }}" id="addUserForm">
+            <div class="form-group"><label class="form-label">اسم المستخدم *</label><input type="text" name="username" class="form-control" required></div>
+            <div class="form-group"><label class="form-label">الاسم الكامل</label><input type="text" name="full_name" class="form-control"></div>
+            <div class="form-group"><label class="form-label">كلمة المرور *</label><input type="password" name="password" class="form-control" required></div>
+            <div class="form-group">
+                <label class="form-label">الصلاحية *</label>
+                <select name="role" class="form-control" required id="addUserRole">
+                    <option value="user">مستخدم عادي</option>
+                    <option value="manager">مشرف</option>
+                    <option value="admin">مدير النظام</option>
+                    {% if current_user.role == 'developer' %}
+                    <option value="developer">مطوّر النظام</option>
+                    {% endif %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">الفرع</label>
+                <select name="branch_id" class="form-control">
+                    <option value="">— بدون فرع —</option>
+                    {% for b in branches %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">صلاحيات يدوية (اختياري)</label>
+                <small style="display:block;color:var(--text-muted);margin-bottom:8px;font-size:11px;">اتركها فارغة لتطبيق صلاحيات الدور الافتراضية. لتمكين أزرار الحذف في النظام اختر «حذف السجلات»؛ لحذف حسابات المستخدمين اختر «حذف مستخدمين».</small>
+                <div style="display:grid;grid-template-columns:1fr;gap:6px;max-height:220px;overflow-y:auto;padding:4px 0;">
+                    {% for key, label in permission_keys_edit %}
+                    <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+                        <input type="checkbox" name="perm" value="{{ key }}"> {{ label }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> إضافة المستخدم</button>
+        </form>
+    </div>
+    </div>
+</div>
+<script type="application/json" id="erpDefaultPerms">{{ default_perms_by_role | tojson }}</script>
+<script>
+(function () {
+    var MAP = {};
+    try { MAP = JSON.parse(document.getElementById('erpDefaultPerms').textContent || '{}'); } catch (e) {}
+    var roleSel = document.getElementById('addUserRole');
+    if (!roleSel) return;
+    function apply() {
+        var keys = MAP[roleSel.value] || [];
+        document.querySelectorAll('#addUserForm input[name="perm"]').forEach(function (cb) {
+            cb.checked = keys.indexOf(cb.value) >= 0;
+        });
+    }
+    roleSel.addEventListener('change', apply);
+})();
+</script>
+{% endblock %}

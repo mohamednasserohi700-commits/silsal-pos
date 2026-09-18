@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="fiori" data-layout-default="{{ layout_max_width | default('1400px') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover">
+    <meta name="theme-color" content="#F5F7FA">
+    <title>{% block title %}نظام ERP{% endblock %} | {{ app_brand_title }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --primary:#0f1422;--secondary:#1a2035;--accent:#f59e0b;--accent-hover:#d97706;
+            --accent-soft:rgba(245,158,11,.10);--success:#10b981;--danger:#ef4444;
+            --warning:#f59e0b;--info:#3b82f6;--purple:#8b5cf6;
+            --text:#e2e8f0;--text-muted:#64748b;--border:rgba(255,255,255,.06);
+            --card:rgba(26,32,53,.98);--sidebar-w:290px;--radius:12px;
+            --shadow:0 8px 32px rgba(0,0,0,.5);--glow:0 0 24px rgba(245,158,11,.25);
+            --topbar-h:62px;
+            --layout-max: {{ layout_max_width | default('1400px') }};
+        }
+        [data-theme="light"]{
+            --primary:#f8fafc;--secondary:#ffffff;--accent:#ca8a04;--accent-hover:#a16207;
+            --accent-soft:rgba(202,138,4,.14);--success:#047857;--danger:#b91c1c;
+            --warning:#b45309;--info:#1d4ed8;--purple:#6d28d9;
+            --text:#0f172a;--text-muted:#475569;--border:#e2e8f0;
+            --card:#ffffff;--shadow:0 4px 24px rgba(15,23,42,.08);
+        }
+        /* SAP Fiori — Enterprise (الثيم الافتراضي) */
+        [data-theme="fiori"]{
+            --primary:#F5F7FA;
+            --secondary:#FFFFFF;
+            --navy:#16325C;
+            --accent:#0A6ED1;
+            --accent-hover:#0854A0;
+            --accent-soft:rgba(10,110,209,.08);
+            --success:#107E3E;
+            --danger:#BB0000;
+            --warning:#E9730C;
+            --info:#0A6ED1;
+            --purple:#6A6D70;
+            --text:#16325C;
+            --text-muted:#6A6D70;
+            --border:#D9E2EC;
+            --card:#FFFFFF;
+            --shadow:0 2px 8px rgba(22,50,92,.08);
+            --glow:0 4px 16px rgba(10,110,209,.18);
+            --radius:10px;
+            --sidebar-w:290px;
+            --topbar-h:62px;
+        }
+        [data-theme="fiori"] body{background:var(--primary);color:var(--text)}
+        [data-theme="fiori"] body::before{display:none}
+        [data-theme="fiori"] .sidebar{
+            background:var(--secondary);
+            border-left:1px solid var(--border);
+            box-shadow:-2px 0 16px rgba(22,50,92,.06);
+            border-radius:0;
+        }
+        [data-theme="fiori"] .sidebar-logo{background:rgba(10,110,209,.06);border-bottom-color:var(--border)}
+        [data-theme="fiori"] .logo-text .name{color:var(--navy)}
+        [data-theme="fiori"] .nav-link{color:var(--text-muted)}
+        [data-theme="fiori"] .nav-link:hover{background:var(--accent-soft);color:var(--navy)}
+        [data-theme="fiori"] .nav-link:hover i{color:var(--accent)}
+        [data-theme="fiori"] .nav-link.active{
+            background:var(--accent);
+            color:#fff;
+            box-shadow:var(--glow);
+        }
+        [data-theme="fiori"] .nav-link.active::after{background:rgba(255,255,255,.85)}
+        [data-theme="fiori"] .topbar{
+            background:#fff;
+            border-bottom:1px solid var(--border);
+            box-shadow:0 1px 4px rgba(22,50,92,.06);
+            backdrop-filter:none;
+        }
+        [data-theme="fiori"] .card{
+            background:var(--card);
+            border-color:var(--border);
+            box-shadow:var(--shadow);
+            border-radius:10px;
+        }
+        [data-theme="fiori"] .card-header{background:#FAFBFC;border-bottom-color:var(--border)}
+        [data-theme="fiori"] .card-title i{color:var(--accent)}
+        [data-theme="fiori"] .stat-card{
+            background:var(--card);
+            border-color:var(--border);
+            box-shadow:var(--shadow);
+        }
+        [data-theme="fiori"] .stat-card:hover{
+            border-color:rgba(10,110,209,.35);
+            box-shadow:0 8px 24px rgba(10,110,209,.12);
+            transform:translateY(-2px);
+        }
+        [data-theme="fiori"] .stats-grid .stat-card:first-child{
+            background:linear-gradient(135deg,rgba(255,255,255,.98),rgba(245,247,250,.92));
+            backdrop-filter:blur(10px);
+            -webkit-backdrop-filter:blur(10px);
+        }
+        [data-theme="fiori"] .btn-primary{background:var(--accent);color:#fff}
+        [data-theme="fiori"] .btn-primary:hover{background:var(--accent-hover);box-shadow:0 4px 14px rgba(10,110,209,.28)}
+        [data-theme="fiori"] .btn-outline:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+        [data-theme="fiori"] .form-control{background:#fff;border-color:var(--border);color:var(--text)}
+        [data-theme="fiori"] .form-control:focus{
+            border-color:var(--accent);
+            background:#fff;
+            box-shadow:0 0 0 3px rgba(10,110,209,.15);
+        }
+        [data-theme="fiori"] select.form-control option{background:#fff;color:var(--text)}
+        [data-theme="fiori"] thead tr{background:#F5F7FA;border-bottom:2px solid var(--border)}
+        [data-theme="fiori"] th{color:var(--navy);font-weight:700}
+        [data-theme="fiori"] td{border-bottom-color:var(--border)}
+        [data-theme="fiori"] tbody tr:hover td{background:rgba(10,110,209,.04)}
+        [data-theme="fiori"] .user-avatar{background:linear-gradient(135deg,var(--accent),var(--navy));color:#fff}
+        [data-theme="fiori"] .stat-icon.blue{background:rgba(10,110,209,.12);color:var(--accent)}
+        [data-theme="fiori"] .stat-icon.gold{background:rgba(233,115,12,.12);color:var(--warning)}
+        [data-theme="fiori"] .stat-icon.green{background:rgba(16,126,62,.12);color:var(--success)}
+        [data-theme="fiori"] .stat-icon.red{background:rgba(187,0,0,.1);color:var(--danger)}
+        [data-theme="fiori"] .badge-success{background:rgba(16,126,62,.12);color:var(--success)}
+        [data-theme="fiori"] .badge-danger{background:rgba(187,0,0,.1);color:var(--danger)}
+        [data-theme="fiori"] .badge-warning{background:rgba(233,115,12,.12);color:var(--warning)}
+        [data-theme="fiori"] .badge-info{background:rgba(10,110,209,.12);color:var(--accent)}
+        [data-theme="fiori"] .alert-success{background:rgba(16,126,62,.08);border:1px solid rgba(16,126,62,.2);color:var(--success)}
+        [data-theme="fiori"] .alert-error,[data-theme="fiori"] .alert-danger{background:rgba(187,0,0,.06);border:1px solid rgba(187,0,0,.18);color:var(--danger)}
+        [data-theme="fiori"] .alert-warning{background:rgba(233,115,12,.08);border:1px solid rgba(233,115,12,.2);color:var(--warning)}
+        [data-theme="fiori"] .alert-info{background:rgba(10,110,209,.08);border:1px solid rgba(10,110,209,.18);color:var(--accent)}
+        [data-theme="fiori"] .sidebar-nav{scrollbar-color:rgba(22,50,92,.12) transparent}
+        html[data-theme="fiori"]{scrollbar-color:rgba(22,50,92,.30) rgba(22,50,92,.06)}
+        [data-theme="fiori"] ::-webkit-scrollbar-track{background:rgba(22,50,92,.06)}
+        [data-theme="fiori"] ::-webkit-scrollbar-thumb{background:rgba(22,50,92,.30);background-clip:padding-box}
+        [data-theme="fiori"] ::-webkit-scrollbar-thumb:hover{background:rgba(22,50,92,.45);background-clip:padding-box}
+        [data-theme="light"]{
+            --primary:#f8fafc;--secondary:#ffffff;--accent:#ca8a04;--accent-hover:#a16207;
+            --accent-soft:rgba(202,138,4,.14);--success:#047857;--danger:#b91c1c;
+            --warning:#b45309;--info:#1d4ed8;--purple:#6d28d9;
+            --text:#0f172a;--text-muted:#475569;--border:#e2e8f0;
+            --card:#ffffff;--shadow:0 4px 24px rgba(15,23,42,.08);
+        }
+        [data-theme="light"] body::before{background:radial-gradient(ellipse 80% 50% at 5% 0%,rgba(202,138,4,.07) 0%,transparent 55%),
+            radial-gradient(ellipse 50% 80% at 95% 100%,rgba(29,78,216,.06) 0%,transparent 55%)}
+        [data-theme="light"] .topbar{background:#fff;border-bottom-color:#e2e8f0;box-shadow:0 1px 0 rgba(15,23,42,.04)}
+        [data-theme="light"] .sidebar{background:var(--secondary);border-left-color:var(--border);box-shadow:-6px 0 32px rgba(15,23,42,.06)}
+        [data-theme="light"] .nav-link.active{color:#fff}
+        [data-theme="light"] .sidebar-nav{scrollbar-color:rgba(15,23,42,.15) transparent}
+        html[data-theme="light"]{scrollbar-color:rgba(15,23,42,.28) rgba(15,23,42,.05)}
+        [data-theme="light"] ::-webkit-scrollbar-track{background:rgba(15,23,42,.05)}
+        [data-theme="light"] ::-webkit-scrollbar-thumb{background:rgba(15,23,42,.28);background-clip:padding-box}
+        [data-theme="light"] ::-webkit-scrollbar-thumb:hover{background:rgba(15,23,42,.42);background-clip:padding-box}
+        [data-theme="light"] .form-control{background:#fff;border-color:#cbd5e1;color:#0f172a}
+        [data-theme="light"] .form-control:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(202,138,4,.2)}
+        [data-theme="light"] .card{background:var(--card);border-color:#e2e8f0}
+        [data-theme="light"] .stat-card,[data-theme="light"] .user-card{background:#f8fafc;border-color:#e2e8f0}
+        [data-theme="light"] select.form-control option{background:#fff;color:#0f172a}
+        [data-theme="light"] table td{border-bottom-color:#f1f5f9}
+        [data-theme="light"] thead tr{border-bottom-color:#e2e8f0}
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Cairo',sans-serif;background:var(--primary);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
+        body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+            background:radial-gradient(ellipse 80% 50% at 5% 0%,rgba(245,158,11,.05) 0%,transparent 60%),
+                       radial-gradient(ellipse 50% 80% at 95% 100%,rgba(59,130,246,.04) 0%,transparent 60%)}
+        /* SIDEBAR */
+        .sidebar{
+            width:var(--sidebar-w);
+            height:100vh;
+            position:fixed;
+            right:0;
+            top:0;
+            z-index:1000;
+            display:flex;
+            flex-direction:column;
+            overflow:hidden;
+            min-height:0;
+            background:var(--secondary);
+            border-left:1px solid var(--border);
+            border-radius:24px 0 0 24px;
+            box-shadow:var(--shadow);
+        }
+        .sidebar-nav{
+            flex:1;
+            min-height:0;
+            overflow-y:auto;
+            overflow-x:hidden;
+            padding:6px 12px 16px;
+            scrollbar-width:thin;
+            scrollbar-color:rgba(255,255,255,.12) transparent;
+        }
+        .sidebar-nav::-webkit-scrollbar{width:5px}
+        .sidebar-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:8px}
+        .sidebar-logo{
+            padding:22px 20px 18px;
+            border-bottom:1px solid var(--border);
+            display:flex;
+            align-items:center;
+            gap:14px;
+            flex-shrink:0;
+            background:var(--accent-soft);
+        }
+        .logo-icon{
+            width:52px;height:52px;
+            background:transparent;
+            border:none;
+            box-shadow:none;
+            flex-shrink:0;
+            overflow:visible;
+        }
+        .logo-icon img{
+            width:100%;height:100%;
+            object-fit:contain;
+            display:block;
+            filter:drop-shadow(0 4px 12px rgba(37,99,235,.25));
+        }
+        .logo-text .name{
+            font-size:15px;
+            font-weight:800;
+            color:var(--text);
+            line-height:1.35;
+            font-family:'Tajawal',sans-serif;
+            letter-spacing:-.2px;
+        }
+        .logo-text .sub{
+            font-size:11px;
+            color:var(--text-muted);
+            margin-top:5px;
+            line-height:1.4;
+            font-weight:500;
+        }
+        .nav-section{padding:14px 4px 6px}
+        .nav-label{
+            font-size:10.5px;
+            color:var(--text-muted);
+            letter-spacing:.6px;
+            font-weight:700;
+            padding:0 12px 10px;
+            display:flex;
+            align-items:center;
+            gap:8px;
+            text-transform:none;
+        }
+        .nav-label::after{
+            content:'';
+            flex:1;
+            height:1px;
+            background:var(--border);
+        }
+        .nav-link{
+            display:flex;
+            align-items:center;
+            gap:12px;
+            min-height:52px;
+            padding:0 14px;
+            margin-bottom:4px;
+            border-radius:14px;
+            color:var(--text-muted);
+            text-decoration:none;
+            font-size:15px;
+            font-weight:500;
+            transition:background .3s ease,color .3s ease,transform .3s ease;
+            position:relative;
+        }
+        .nav-link::before{display:none}
+        .nav-link:hover{
+            background:var(--accent-soft);
+            color:var(--text);
+        }
+        .nav-link:hover i{
+            transform:scale(1.05);
+            color:var(--accent);
+        }
+        .nav-link.active{
+            background:linear-gradient(90deg,var(--accent) 0%,var(--info) 100%);
+            color:#fff;
+            font-weight:600;
+            box-shadow:var(--glow);
+        }
+        .nav-link.active i{color:#fff}
+        .nav-link.active::after{
+            content:'';
+            position:absolute;
+            right:0;
+            top:18%;
+            height:64%;
+            width:4px;
+            background:#fff;
+            border-radius:4px 0 0 4px;
+            opacity:.9;
+        }
+        .nav-link i{
+            width:20px;
+            text-align:center;
+            font-size:18px;
+            flex-shrink:0;
+            opacity:.88;
+            transition:transform .3s ease,color .3s ease;
+        }
+        .nav-link span.label{flex:1;line-height:1.3}
+        .nav-badge{
+            background:#ef4444;
+            color:#fff;
+            font-size:10px;
+            padding:3px 8px;
+            border-radius:20px;
+            font-weight:700;
+            flex-shrink:0;
+            min-width:20px;
+            text-align:center;
+            line-height:1.2;
+        }
+        .nav-badge.warn{background:#f59e0b;color:#0f1422}
+        .nav-about-bottom{border-top:1px solid var(--border)!important;margin-top:8px;padding-top:10px!important}
+        .user-card{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;
+            background:rgba(255,255,255,.03);border:1px solid var(--border)}
+        .user-avatar{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),#c97000);border-radius:50%;
+            display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#0f1422;flex-shrink:0}
+        .user-name{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .user-role{font-size:10.5px;color:var(--text-muted)}
+        .icon-btn{width:30px;height:30px;border-radius:7px;background:transparent;border:1px solid var(--border);
+            color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:12px;
+            cursor:pointer;text-decoration:none;transition:all .2s}
+        .icon-btn:hover{border-color:var(--accent);color:var(--accent)}
+        .icon-btn.danger:hover{border-color:var(--danger);color:var(--danger)}
+
+        /* MAIN */
+        .main-content{margin-right:var(--sidebar-w);flex:1;min-width:0;display:flex;flex-direction:column}
+        .topbar{height:var(--topbar-h);background:var(--card);backdrop-filter:blur(20px);
+            border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;
+            justify-content:space-between;position:sticky;top:0;z-index:100;flex-shrink:0}
+        /* TOPBAR responsive layout (prevents overlap) */
+        .topbar > div:first-child{min-width:0}
+        .topbar-right{min-width:0;flex-shrink:0}
+        #globalSearchWrapper{min-width:0}
+        #globalSearchInput{max-width:min(36vw, 320px)}
+        #globalSearchResults{max-width:420px}
+
+        @media (max-width: 1150px){
+            .topbar{padding:0 14px}
+            #globalSearchInput{width:180px !important}
+            #globalSearchInput:focus{width:220px !important}
+            .sub-pill{max-width:160px}
+        }
+        @media (max-width: 980px){
+            /* allow wrapping into two rows instead of overlapping */
+            .topbar{
+                height:auto;
+                min-height:var(--topbar-h);
+                padding-top:10px;
+                padding-bottom:10px;
+                gap:10px;
+                flex-wrap:wrap;
+                align-items:flex-start;
+            }
+            .topbar > div:first-child{flex:1 1 420px}
+            .topbar-right{
+                flex:1 1 360px;
+                justify-content:flex-end;
+                flex-wrap:wrap;
+                row-gap:8px;
+                column-gap:8px;
+            }
+            /* keep user block on same line and shrink safely */
+            .topbar-right > div[style*="User info"]{min-width:0}
+            #globalSearchInput{width:170px !important}
+            #globalSearchInput:focus{width:210px !important}
+        }
+        @media (max-width: 720px){
+            /* compact mode: reduce/limit long widgets */
+            .sub-pill{display:none}
+            #globalSearchWrapper{display:none}
+            .erp-device-layout-tools{display:none!important;}
+        }
+        @media (max-width: 520px){
+            .topbar{gap:8px}
+            .page-title{font-size:14px}
+            /* user block tighter */
+            .topbar-right > div[style*="display:flex;align-items:center;gap:8px"]{padding:4px 8px !important}
+        }
+        .page-title{font-size:18px;font-weight:800;display:flex;align-items:center;gap:9px;line-height:1}
+        .page-title i{color:var(--accent);font-size:16px}
+        .breadcrumb{font-size:11.5px;color:var(--text-muted);margin-top:3px}
+        .topbar-right{display:flex;align-items:center;gap:10px}
+
+        /* Notif bell */
+        .notif-btn{position:relative;width:38px;height:38px;border-radius:9px;background:rgba(255,255,255,.04);
+            border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+            cursor:pointer;color:var(--text-muted);font-size:15px;transition:all .2s;text-decoration:none;
+            background:none}
+        .notif-btn:hover{border-color:var(--accent);color:var(--accent)}
+        .notif-count{position:absolute;top:4px;left:4px;background:var(--danger);color:white;font-size:9px;
+            font-weight:800;padding:1px 4px;border-radius:10px;min-width:16px;text-align:center;display:none}
+        .notif-count.show{display:block}
+        .notif-dropdown{display:none;position:absolute;top:calc(var(--topbar-h) + 4px);left:28px;width:320px;
+            background:var(--secondary);border:1px solid var(--border);border-radius:14px;
+            box-shadow:var(--shadow);z-index:500;overflow:hidden;animation:dropDown .2s ease}
+        .notif-dropdown.open{display:block}
+        @keyframes dropDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+        .notif-header{padding:13px 18px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px}
+        .notif-item{display:flex;align-items:flex-start;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);
+            text-decoration:none;color:var(--text);transition:background .15s}
+        .notif-item:last-child{border-bottom:none}
+        .notif-item:hover{background:rgba(255,255,255,.03)}
+        .notif-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+        .notif-icon.warn{background:rgba(245,158,11,.15);color:var(--warning)}
+        .notif-icon.danger{background:rgba(239,68,68,.15);color:var(--danger)}
+        .notif-icon.info{background:rgba(59,130,246,.15);color:var(--info)}
+        .notif-text{font-size:13px;line-height:1.4}
+        .notif-text b{display:block;font-weight:700;margin-bottom:2px}
+        .notif-text span{font-size:11.5px;color:var(--text-muted)}
+        .notif-empty{padding:28px;text-align:center;color:var(--text-muted);font-size:13px}
+
+        .content{padding:22px 28px;flex:1;position:relative;z-index:1;width:100%;max-width:var(--layout-max);margin:0 auto}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+        .fade-in{animation:fadeIn .3s ease}
+
+        /* CARDS */
+        .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+        .card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+        .card-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+        .card-title i{color:var(--accent)}
+        .card-body{padding:20px}
+
+        /* STATS */
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px}
+        .stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;
+            display:flex;align-items:center;gap:14px;transition:all .25s}
+        .stat-card:hover{border-color:rgba(245,158,11,.3);transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.3)}
+        .stat-icon{width:48px;height:48px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+        .stat-icon.gold{background:rgba(245,158,11,.12);color:var(--accent)}
+        .stat-icon.green{background:rgba(16,185,129,.12);color:var(--success)}
+        .stat-icon.blue{background:rgba(59,130,246,.12);color:var(--info)}
+        .stat-icon.red{background:rgba(239,68,68,.12);color:var(--danger)}
+        .stat-icon.purple{background:rgba(139,92,246,.12);color:var(--purple)}
+        .stat-icon.teal{background:rgba(20,184,166,.12);color:#14b8a6}
+        .stat-value{font-size:24px;font-weight:800;font-family:'Tajawal',sans-serif;line-height:1.1}
+        .stat-label{font-size:11.5px;color:var(--text-muted);margin-top:3px}
+
+        /* BUTTONS */
+        .btn{padding:8px 16px;border-radius:8px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;
+            border:none;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:7px;
+            text-decoration:none;white-space:nowrap}
+        .btn-primary{background:var(--accent);color:#0f1422}
+        .btn-primary:hover{background:var(--accent-hover);box-shadow:0 4px 14px rgba(245,158,11,.3)}
+        .btn-success{background:var(--success);color:white}.btn-success:hover{background:#059669}
+        .btn-danger{background:var(--danger);color:white}.btn-danger:hover{background:#dc2626}
+        .btn-info{background:var(--info);color:white}.btn-info:hover{background:#2563eb}
+        .btn-warning{background:var(--warning);color:#0f1422}.btn-warning:hover{background:var(--accent-hover)}
+        .btn-outline{background:transparent;color:var(--text-muted);border:1px solid var(--border)}
+        .btn-outline:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+        .btn-sm{padding:6px 12px;font-size:12px}
+        .btn-xs{padding:4px 8px;font-size:11px;border-radius:6px}
+
+        /* TABLE */
+        .table-container{overflow-x:auto}
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        thead tr{border-bottom:1px solid var(--border)}
+        th{padding:11px 16px;color:var(--text-muted);font-weight:600;font-size:11.5px;text-align:right;white-space:nowrap}
+        td{padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.03)}
+        tr:last-child td{border-bottom:none}
+        tbody tr:hover td{background:rgba(255,255,255,.018)}
+
+        /* FORMS */
+        .form-group{margin-bottom:16px}
+        .form-label{display:block;font-size:12.5px;font-weight:600;color:var(--text-muted);margin-bottom:6px}
+        .form-control{width:100%;padding:9px 13px;background:rgba(255,255,255,.035);border:1px solid var(--border);
+            border-radius:8px;color:var(--text);font-family:'Cairo',sans-serif;font-size:13px;transition:all .18s}
+        .form-control:focus{outline:none;border-color:var(--accent);background:rgba(245,158,11,.04);
+            box-shadow:0 0 0 3px rgba(245,158,11,.08)}
+        select.form-control option{background:#1a2035}
+        textarea.form-control{resize:vertical;min-height:80px}
+        .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+        .form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        .form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+
+        /* BADGES */
+        .badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+        .badge-success{background:rgba(16,185,129,.14);color:#34d399}
+        .badge-danger{background:rgba(239,68,68,.14);color:#f87171}
+        .badge-warning{background:rgba(245,158,11,.14);color:#fbbf24}
+        .badge-info{background:rgba(59,130,246,.14);color:#60a5fa}
+        .badge-secondary{background:rgba(100,116,139,.2);color:var(--text-muted)}
+        .badge-purple{background:rgba(139,92,246,.14);color:#a78bfa}
+
+        /* ALERTS */
+        .alert{padding:12px 16px;border-radius:10px;margin-bottom:14px;font-size:13px;display:flex;align-items:center;gap:10px}
+        .alert-success{background:rgba(16,185,129,.10);border:1px solid rgba(16,185,129,.25);color:#34d399}
+        .alert-error{background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.25);color:#f87171}
+        .alert-warning{background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.25);color:#fbbf24}
+        .alert-info{background:rgba(59,130,246,.10);border:1px solid rgba(59,130,246,.25);color:#60a5fa}
+
+        /* PAGINATION */
+        .pagination{display:flex;gap:4px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+        .page-link{padding:6px 12px;border-radius:7px;background:var(--card);border:1px solid var(--border);
+            color:var(--text-muted);text-decoration:none;font-size:12.5px;transition:all .18s}
+        .page-link:hover,.page-link.active{background:var(--accent);color:#0f1422;border-color:var(--accent);font-weight:700}
+
+        /* MODAL */
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;
+            align-items:center;justify-content:center;padding:20px}
+        .modal-overlay.open{display:flex}
+        .modal{background:var(--secondary);border:1px solid var(--border);border-radius:16px;padding:26px;
+            width:100%;max-width:500px;max-height:90vh;overflow-y:auto;animation:slideUp .25s ease}
+        @keyframes slideUp{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}
+        .modal-title{font-size:17px;font-weight:800;margin-bottom:18px;display:flex;align-items:center;gap:10px}
+        .modal-title i{color:var(--accent)}
+        .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+
+        .search-box{position:relative}
+        .search-box i{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none}
+        .search-box input{padding-right:36px}
+
+        .empty-state{text-align:center;padding:52px 20px;color:var(--text-muted)}
+        .empty-state i{font-size:42px;margin-bottom:14px;display:block;opacity:.3}
+        .empty-state h3{font-size:15px;opacity:.7}
+
+        .invoice-box{background:var(--card);border-radius:var(--radius);padding:32px}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .pulse{animation:pulse 1.8s infinite}
+
+        /* MOBILE */
+        .mobile-menu-btn{display:none}
+        @media(max-width:900px){
+            .sidebar{transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+            .sidebar.open{transform:translateX(0)}
+            .main-content{margin-right:0}
+            .mobile-menu-btn{display:flex !important}
+        }
+        @media(max-width:640px){
+            .stats-grid{grid-template-columns:1fr 1fr}
+            .content{padding:14px;max-width:100%}
+            .topbar{padding:0 14px}
+            .form-grid-3,.form-grid-2{grid-template-columns:1fr}
+        }
+        .theme-toggle{width:38px;height:38px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid var(--border);
+            color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px}
+        .theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+        .sub-pill{font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;white-space:nowrap;border:1px solid var(--border);
+            background:rgba(255,255,255,.04);color:var(--text-muted);max-width:220px;overflow:hidden;text-overflow:ellipsis}
+        .sub-pill.ok{border-color:rgba(16,185,129,.35);color:#34d399;background:rgba(16,185,129,.08)}
+        .sub-pill.warn{border-color:rgba(245,158,11,.4);color:#fbbf24;background:rgba(245,158,11,.1)}
+        .sub-pill.bad{border-color:rgba(239,68,68,.4);color:#f87171;background:rgba(239,68,68,.1)}
+        .app-footer-note{text-align:center;padding:12px 16px 20px;font-size:11.5px;color:var(--text-muted);opacity:.85}
+        @media(max-width:900px){
+            .erp-device-layout-tools{display:none!important;}
+        }
+    </style>
+    <script>
+    (function(){try{var lw=localStorage.getItem('erp_layout_max_width');if(lw)document.documentElement.style.setProperty('--layout-max',lw);}catch(e){}})();
+    </script>
+    <script>
+    (function(){
+      try{
+        var t=localStorage.getItem('erp_theme')||'fiori';
+        if(t==='erp2026'||t==='neon2026'){ t='fiori'; localStorage.setItem('erp_theme','fiori'); }
+        document.documentElement.setAttribute('data-theme',t);
+        var m=document.querySelector('meta[name="theme-color"]');
+        if(m){
+          m.setAttribute('content',
+            t==='fiori'?'#F5F7FA':
+            (t==='light'?'#f8fafc':'#0f1422')
+          );
+        }
+      }catch(e){}
+    })();
+    function erpSetTheme(next){
+      var d=document.documentElement;
+      d.setAttribute('data-theme', next);
+      try{localStorage.setItem('erp_theme', next);}catch(e){}
+      var m=document.querySelector('meta[name="theme-color"]');
+      if(m){
+        m.setAttribute('content',
+          next==='fiori'?'#F5F7FA':
+          (next==='light'?'#f8fafc':'#0f1422')
+        );
+      }
+      try{ if(typeof window.showToast==='function') window.showToast('تم تغيير الثيم', 'success'); }catch(e){}
+    }
+    function erpToggleTheme(){
+      var d=document.documentElement;
+      var cur=d.getAttribute('data-theme')||'fiori';
+      var order=['fiori','light','dark'];
+      var idx=order.indexOf(cur);
+      var next=order[(idx<0?0:idx+1)%order.length];
+      erpSetTheme(next);
+    }
+    </script>
+    {% block extra_styles %}{% endblock %}
+</head>
+<body>
+
+<aside class="sidebar sidebar-enterprise" id="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-icon">
+            <img src="{{ url_for('static', filename='img/logo-makers-erp-3d.png') }}" alt="Makers ERP">
+        </div>
+        <div class="logo-text">
+            <div class="name">{{ app_brand_title | default('Silsal POS') }}</div>
+            <div class="sub">نظام إدارة الأعمال المتكامل</div>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav" id="sidebarNav" style="display:flex;flex-direction:column;padding-bottom:8px;">
+        <div class="nav-section">
+            <div class="nav-label">الرئيسية</div>
+            {% if can('dashboard') %}
+            <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
+                <i class="fas fa-chart-pie"></i><span class="label">لوحة التحكم</span>
+            </a>
+            {% endif %}
+        </div>
+        {% if can('sales') or can('purchases') or can('returns') %}
+        <div class="nav-section">
+            <div class="nav-label">المبيعات والعمليات</div>
+            {% if can('sales') %}
+            <a href="{{ url_for('sales') }}" class="nav-link {% if 'sale' in (request.endpoint or '') and 'return' not in (request.endpoint or '') and 'report' not in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-cash-register"></i><span class="label">المبيعات</span>
+            </a>
+            {% endif %}
+            {% if can('purchases') %}
+            <a href="{{ url_for('purchases') }}" class="nav-link {% if 'purchase' in (request.endpoint or '') and 'return' not in (request.endpoint or '') and 'report' not in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-shopping-cart"></i><span class="label">المشتريات</span>
+            </a>
+            {% endif %}
+            {% if can('returns') %}
+            <a href="{{ url_for('sale_returns') }}" class="nav-link {% if request.endpoint in ['sale_returns','new_sale_return'] %}active{% endif %}">
+                <i class="fas fa-undo"></i><span class="label">مرتجعات مبيعات</span>
+            </a>
+            <a href="{{ url_for('purchase_returns') }}" class="nav-link {% if request.endpoint in ['purchase_returns','new_purchase_return'] %}active{% endif %}">
+                <i class="fas fa-undo-alt"></i><span class="label">مرتجعات مشتريات</span>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if can('inventory') or can('transfers') or can('adjust_stock') %}
+        <div class="nav-section">
+            <div class="nav-label">المخازن</div>
+            {% if can('inventory') %}
+            <a href="{{ url_for('inventory') }}" class="nav-link {% if request.endpoint=='inventory' %}active{% endif %}">
+                <i class="fas fa-boxes"></i><span class="label">الجرد والمخزون</span>
+            </a>
+            {% endif %}
+            {% if can('transfers') %}
+            <a href="{{ url_for('transfers') }}" class="nav-link {% if 'transfer' in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-exchange-alt"></i><span class="label">تحويلات المخازن</span>
+                <span class="nav-badge warn" id="sidebarPendingBadge" style="display:none">0</span>
+            </a>
+            {% endif %}
+            {% if can('adjust_stock') %}
+            <a href="{{ url_for('adjust_stock') }}" class="nav-link {% if request.endpoint=='adjust_stock' %}active{% endif %}">
+                <i class="fas fa-sliders-h"></i><span class="label">تسوية المخزون</span>
+            </a>
+            {% endif %}
+            {% if can('inventory') %}
+            <div class="nav-label" style="padding-top:10px;font-size:9px;">إدخال وإخراج</div>
+            <a href="{{ url_for('inventory_memos_list') }}" class="nav-link {% if request.endpoint in ['inventory_memos_list','inventory_memo_issue','inventory_memo_receive','inventory_memo_detail','inventory_memo_print'] %}active{% endif %}">
+                <i class="fas fa-clipboard-list"></i><span class="label">مذكرات مخزون</span>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if can('customers') or can('suppliers') or can('employees') %}
+        <div class="nav-section">
+            <div class="nav-label">الأطراف</div>
+            {% if can('customers') %}
+            <a href="{{ url_for('customers') }}" class="nav-link {% if 'customer' in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-users"></i><span class="label">العملاء</span>
+            </a>
+            {% endif %}
+            {% if can('suppliers') %}
+            <a href="{{ url_for('suppliers') }}" class="nav-link {% if 'supplier' in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-truck"></i><span class="label">الموردون</span>
+            </a>
+            {% endif %}
+            {% if can('employees') %}
+            <a href="{{ url_for('employees') }}" class="nav-link {% if 'employee' in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-id-badge"></i><span class="label">الموظفون</span>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if can('expenses') or can('products') or can('categories') %}
+        <div class="nav-section">
+            <div class="nav-label">المالية</div>
+            {% if can('expenses') %}
+            <a href="{{ url_for('expenses') }}" class="nav-link {% if 'expense' in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-file-invoice-dollar"></i><span class="label">المصاريف</span>
+            </a>
+            {% endif %}
+            {% if can('products') %}
+            <a href="{{ url_for('products') }}" class="nav-link {% if 'product' in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-barcode"></i><span class="label">الأصناف</span>
+            </a>
+            {% endif %}
+            {% if can('categories') %}
+            <a href="{{ url_for('categories') }}" class="nav-link {% if request.endpoint=='categories' %}active{% endif %}">
+                <i class="fas fa-tags"></i><span class="label">التصنيفات</span>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if can('reports') %}
+        <div class="nav-section">
+            <div class="nav-label">التقارير والتحليلات</div>
+            <a href="{{ url_for('report_dashboard') }}" class="nav-link {% if request.endpoint=='report_dashboard' %}active{% endif %}">
+                <i class="fas fa-chart-bar"></i><span class="label">التقارير التحليلية</span>
+            </a>
+            <a href="{{ url_for('report_profit') }}" class="nav-link {% if request.endpoint=='report_profit' %}active{% endif %}">
+                <i class="fas fa-balance-scale"></i><span class="label">الأرباح والخسائر</span>
+            </a>
+            <a href="{{ url_for('report_sales') }}" class="nav-link {% if request.endpoint=='report_sales' %}active{% endif %}">
+                <i class="fas fa-chart-line"></i><span class="label">تقرير المبيعات</span>
+            </a>
+            <a href="{{ url_for('report_customers') }}" class="nav-link {% if request.endpoint=='report_customers' %}active{% endif %}">
+                <i class="fas fa-user-clock"></i><span class="label">أرصدة العملاء</span>
+            </a>
+            <a href="{{ url_for('report_suppliers') }}" class="nav-link {% if request.endpoint=='report_suppliers' %}active{% endif %}">
+                <i class="fas fa-truck-loading"></i><span class="label">أرصدة الموردين</span>
+            </a>
+            <a href="{{ url_for('report_low_stock') }}" class="nav-link {% if request.endpoint=='report_low_stock' %}active{% endif %}">
+                <i class="fas fa-exclamation-triangle"></i><span class="label">تنبيه نقص المخزون</span>
+                <span class="nav-badge danger" id="sidebarLowStockBadge" style="display:none">0</span>
+            </a>
+            <a href="{{ url_for('report_inventory') }}" class="nav-link {% if request.endpoint=='report_inventory' %}active{% endif %}">
+                <i class="fas fa-clipboard-list"></i><span class="label">جرد المخزون</span>
+            </a>
+            <a href="{{ url_for('report_stock_adjustments') }}" class="nav-link {% if request.endpoint=='report_stock_adjustments' %}active{% endif %}">
+                <i class="fas fa-sliders-h"></i><span class="label">تقرير التسويات</span>
+            </a>
+            <a href="{{ url_for('report_expenses') }}" class="nav-link {% if request.endpoint=='report_expenses' %}active{% endif %}">
+                <i class="fas fa-receipt"></i><span class="label">تقرير المصاريف</span>
+            </a>
+        </div>
+        {% endif %}
+        {% if can('settings') or can('settings_branding') or can('settings_database') or can('users') or can('backup') %}
+        <div class="nav-section">
+            <div class="nav-label">الإدارة والإعدادات</div>
+            {% if can('settings_branding') %}
+            <a href="{{ url_for('app_settings') }}" class="nav-link {% if request.endpoint=='app_settings' %}active{% endif %}">
+                <i class="fas fa-palette"></i><span class="label">إعدادات النظام</span>
+            </a>
+            {% endif %}
+            {% if can('settings') %}
+            <a href="{{ url_for('sale_tax_settings') }}" class="nav-link {% if request.endpoint=='sale_tax_settings' %}active{% endif %}">
+                <i class="fas fa-percentage"></i><span class="label">ضريبة البيع الثابتة</span>
+            </a>
+            <a href="{{ url_for('branches') }}" class="nav-link {% if request.endpoint=='branches' %}active{% endif %}">
+                <i class="fas fa-building"></i><span class="label">الفروع</span>
+            </a>
+            <a href="{{ url_for('warehouses') }}" class="nav-link {% if request.endpoint=='warehouses' %}active{% endif %}">
+                <i class="fas fa-warehouse"></i><span class="label">المخازن</span>
+            </a>
+            {% endif %}
+            {% if can('settings_database') %}
+            <a href="{{ url_for('database_admin') }}" class="nav-link {% if request.endpoint=='database_admin' %}active{% endif %}">
+                <i class="fas fa-server"></i><span class="label">قاعدة البيانات</span>
+            </a>
+            {% endif %}
+            {% if can('users') %}
+            <a href="{{ url_for('users') }}" class="nav-link {% if request.endpoint in ['users','edit_user'] %}active{% endif %}">
+                <i class="fas fa-user-cog"></i><span class="label">المستخدمون</span>
+            </a>
+            {% endif %}
+            {% if can('connected_users') %}
+            <a href="{{ url_for('connected_users_page') }}" class="nav-link {% if request.endpoint=='connected_users_page' %}active{% endif %}">
+                <i class="fas fa-signal"></i><span class="label">المتصلون</span>
+            </a>
+            {% endif %}
+            {% if can('backup') %}
+            <a href="{{ url_for('backup') }}" class="nav-link {% if request.endpoint=='backup' %}active{% endif %}">
+                <i class="fas fa-download"></i><span class="label">نسخ احتياطي</span>
+            </a>
+            {% endif %}
+            {% if current_user.role == 'developer' %}
+            <a href="{{ url_for('license_admin') }}" class="nav-link {% if request.endpoint in ['license_admin','license_admin_generate','license_admin_save_message'] %}active{% endif %}">
+                <i class="fas fa-fingerprint"></i><span class="label">الترخيص والسريالات</span>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+        <div class="nav-section nav-about-bottom" style="margin-top:auto;padding-top:14px;border-top:1px solid var(--border);">
+            <a href="{{ url_for('about') }}" class="nav-link {% if request.endpoint=='about' %}active{% endif %}">
+                <i class="fas fa-info-circle"></i><span class="label">حول</span>
+            </a>
+        </div>
+    </nav>
+
+
+</aside>
+
+<main class="main-content">
+    <div class="topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+            <button class="mobile-menu-btn icon-btn" onclick="toggleSidebar()" style="font-size:16px;"><i class="fas fa-bars"></i></button>
+            <button type="button" onclick="history.back()" class="icon-btn" title="رجوع" style="font-size:15px;flex-shrink:0;"><i class="fas fa-arrow-right"></i></button>
+            <div>
+                <div class="page-title"><i class="{{ block_icon | default('fas fa-home') }}"></i>{% block page_title %}الرئيسية{% endblock %}</div>
+                <div class="breadcrumb">{% block breadcrumb %}{{ app_brand_title }}{% endblock %}</div>
+            </div>
+        </div>
+        <div class="topbar-right">
+            {% if subscription_status %}
+            <span class="sub-pill {% if subscription_status.kind in ('developer','permanent') %}ok{% elif subscription_status.kind in ('expired','none') %}bad{% else %}warn{% endif %}" title="حالة الاشتراك / الترخيص">
+                <i class="fas fa-certificate" style="margin-left:6px;opacity:.85;"></i>{{ subscription_status.line }}
+            </span>
+            {% endif %}
+            <button type="button" class="theme-toggle" onclick="erpToggleTheme()" title="تبديل الثيم (Fiori / فاتح / داكن)"><i class="fas fa-adjust"></i></button>
+            <div class="erp-device-layout-tools" style="display:flex;align-items:center;gap:4px;flex-shrink:0;" title="وضع العرض — يُحفظ على هذا الجهاز فقط">
+                <button type="button" id="btnLayoutPC" onclick="erpSetLayout('pc')" title="عرض PC"
+                    style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;font-size:11.5px;font-weight:700;
+                           border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;transition:all .18s;">
+                    <i class="fas fa-desktop"></i> PC
+                </button>
+                <button type="button" id="btnLayoutPhone" onclick="erpSetLayout('phone')" title="عرض هاتف"
+                    style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;font-size:11.5px;font-weight:700;
+                           border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;transition:all .18s;">
+                    <i class="fas fa-mobile-alt"></i> هاتف
+                </button>
+            </div>
+            {% block topbar_actions %}{% endblock %}
+
+            <!-- Global Search -->
+            <div style="position:relative;" id="globalSearchWrapper">
+                <div style="position:relative;">
+                    <i class="fas fa-search" style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="text" id="globalSearchInput" placeholder="بحث سريع..." autocomplete="off"
+                        style="width:220px;padding:7px 34px 7px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border);
+                               border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:12.5px;transition:all .2s;"
+                        onfocus="this.style.borderColor='var(--accent)';this.style.width='280px'"
+                        onblur="setTimeout(()=>{this.style.borderColor='';this.style.width='220px';closeGlobalSearch()},200)">
+                </div>
+                <div id="globalSearchResults" style="display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;width:320px;
+                    background:var(--secondary);border:1px solid var(--border);border-radius:12px;z-index:600;
+                    box-shadow:var(--shadow);overflow:hidden;animation:dropDown .2s ease;"></div>
+            </div>
+
+            <div style="position:relative;" id="notifWrapper">
+                <button class="notif-btn" onclick="toggleNotif()" title="الإشعارات">
+                    <i class="fas fa-bell"></i>
+                    <span class="notif-count" id="notifCount"></span>
+                </button>
+                <div class="notif-dropdown" id="notifDropdown">
+                    <div class="notif-header"><i class="fas fa-bell" style="color:var(--accent);margin-left:8px;"></i> الإشعارات</div>
+                    <div id="notifList"><div class="notif-empty"><i class="fas fa-check-circle" style="font-size:26px;display:block;margin-bottom:10px;color:var(--success);opacity:.7;"></i>لا توجد إشعارات</div></div>
+                </div>
+            </div>
+
+            <!-- User info + Logout -->
+            <div style="display:flex;align-items:center;gap:8px;padding:4px 10px;border-radius:10px;
+                        background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);
+                        backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);flex-shrink:0;">
+                <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#c97000);
+                            display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#0f1422;flex-shrink:0;">
+                    {{ (current_user.full_name or current_user.username)[0] }}
+                </div>
+                <div style="line-height:1.3;min-width:0;">
+                    <div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;">
+                        {{ current_user.full_name or current_user.username }}
+                    </div>
+                    <div style="font-size:10px;color:var(--accent);font-weight:600;">
+                        {% if current_user.role=='developer' %}مطوّر النظام
+                        {% elif current_user.role=='admin' %}مدير النظام
+                        {% elif current_user.role=='manager' %}مشرف
+                        {% else %}مستخدم{% endif %}
+                    </div>
+                </div>
+                <a href="{{ url_for('logout') }}" title="تسجيل الخروج"
+                   style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;
+                          background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);
+                          color:#f87171;font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap;
+                          transition:all .18s;flex-shrink:0;"
+                   onmouseover="this.style.background='rgba(239,68,68,.22)';this.style.borderColor='rgba(239,68,68,.5)'"
+                   onmouseout="this.style.background='rgba(239,68,68,.12)';this.style.borderColor='rgba(239,68,68,.25)'">
+                    <i class="fas fa-sign-out-alt"></i> خروج
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="content fade-in">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                <i class="fas fa-{% if category=='success' %}check-circle{% elif category=='error' %}times-circle{% elif category=='warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+    <div class="app-footer-note">{{ app_brand_title }} © 2026 — نظام محاسبة وإدارة متكامل</div>
+</main>
+
+<div id="sidebarOverlay" onclick="toggleSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;"></div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+(function(){
+    var KEY_W = 'erp_layout_mode';
+    var root  = document.documentElement;
+    var PC_W  = '1400px';
+    var PH_W  = '480px';
+    function applyLayout(mode){
+        if(mode === 'phone'){
+            root.style.setProperty('--layout-max', PH_W);
+        } else {
+            root.style.setProperty('--layout-max', PC_W);
+        }
+        var btnPC    = document.getElementById('btnLayoutPC');
+        var btnPhone = document.getElementById('btnLayoutPhone');
+        if(!btnPC || !btnPhone) return;
+        if(mode === 'phone'){
+            btnPhone.style.background = 'var(--accent-soft)';
+            btnPhone.style.borderColor = 'var(--accent)';
+            btnPhone.style.color = 'var(--accent)';
+            btnPC.style.background = 'transparent';
+            btnPC.style.borderColor = 'var(--border)';
+            btnPC.style.color = 'var(--text-muted)';
+        } else {
+            btnPC.style.background = 'var(--accent-soft)';
+            btnPC.style.borderColor = 'var(--accent)';
+            btnPC.style.color = 'var(--accent)';
+            btnPhone.style.background = 'transparent';
+            btnPhone.style.borderColor = 'var(--border)';
+            btnPhone.style.color = 'var(--text-muted)';
+        }
+    }
+    window.erpSetLayout = function(mode){
+        try{ localStorage.setItem(KEY_W, mode); }catch(e){}
+        applyLayout(mode);
+    };
+    // تطبيق المحفوظ عند التحميل
+    var saved = 'pc';
+    try{ saved = localStorage.getItem(KEY_W) || 'pc'; }catch(e){}
+    applyLayout(saved);
+})();
+async function loadNotif() {
+    try {
+        const r = await fetch('/api/notifications');
+        if(!r.ok) return;
+        const d = await r.json();
+        const total = (d.total != null ? d.total : (d.pending_transfers + d.low_stock));
+        const el = document.getElementById('notifCount');
+        el.textContent = total > 99 ? '99+' : total;
+        el.classList.toggle('show', total > 0);
+        const pb = document.getElementById('sidebarPendingBadge');
+        const lb = document.getElementById('sidebarLowStockBadge');
+        if(pb){ pb.textContent = d.pending_transfers; pb.style.display = d.pending_transfers > 0 ? '' : 'none'; }
+        if(lb){ lb.textContent = d.low_stock; lb.style.display = d.low_stock > 0 ? '' : 'none'; }
+        const items = [];
+        if(d.pending_transfers > 0) items.push(`<a href="/transfers?status=pending" class="notif-item" onclick="closeNotif()"><div class="notif-icon warn"><i class="fas fa-exchange-alt"></i></div><div class="notif-text"><b>تحويلات معلقة</b><span>${d.pending_transfers} طلب ينتظر الموافقة</span></div></a>`);
+        if(d.low_stock > 0) items.push(`<a href="/reports/low-stock" class="notif-item" onclick="closeNotif()"><div class="notif-icon danger"><i class="fas fa-exclamation-triangle"></i></div><div class="notif-text"><b>نقص مخزون</b><span>${d.low_stock} صنف وصل للحد الأدنى</span></div></a>`);
+        if(d.overdue_customers > 0) items.push(`<a href="/reports/customers" class="notif-item" onclick="closeNotif()"><div class="notif-icon info"><i class="fas fa-users"></i></div><div class="notif-text"><b>أرصدة عملاء</b><span>${d.overdue_customers} عميل لديه رصيد مستحق</span></div></a>`);
+        document.getElementById('notifList').innerHTML = items.length ? items.join('') : `<div class="notif-empty"><i class="fas fa-check-circle" style="font-size:26px;display:block;margin-bottom:10px;color:var(--success);opacity:.7;"></i>لا توجد إشعارات</div>`;
+    } catch(e) {}
+}
+function toggleNotif(){ document.getElementById('notifDropdown').classList.toggle('open'); }
+function closeNotif(){ document.getElementById('notifDropdown').classList.remove('open'); }
+document.addEventListener('click', e => { const w=document.getElementById('notifWrapper'); if(w&&!w.contains(e.target)) closeNotif(); });
+function toggleSidebar(){ const s=document.getElementById('sidebar'),o=document.getElementById('sidebarOverlay'); s.classList.toggle('open'); o.style.display=s.classList.contains('open')?'block':'none'; }
+(function(){
+    /* التمرير الفعلي داخل .sidebar-nav وليس #sidebar */
+    var nav=document.getElementById('sidebarNav');
+    if(!nav) return;
+    var KEY='erp_sb_scroll';
+    function save(){
+        try{ sessionStorage.setItem(KEY, String(nav.scrollTop)); }catch(e){}
+    }
+    function restore(){
+        try{
+            var y=sessionStorage.getItem(KEY);
+            if(y!==null&&y!=='') nav.scrollTop=parseInt(y,10)||0;
+        }catch(e){}
+    }
+    function restoreLater(){
+        restore();
+        setTimeout(restore, 0);
+        setTimeout(restore, 50);
+        setTimeout(restore, 150);
+        setTimeout(restore, 400);
+    }
+    restoreLater();
+    requestAnimationFrame(function(){ restore(); requestAnimationFrame(restore); });
+    window.addEventListener('load', restoreLater);
+    window.addEventListener('pageshow', function(){ restoreLater(); });
+    window.addEventListener('beforeunload', save);
+    var t=null;
+    nav.addEventListener('scroll', function(){
+        if(t) clearTimeout(t);
+        t=setTimeout(save, 50);
+    }, {passive:true});
+    document.querySelectorAll('#sidebarNav a[href]').forEach(function(a){
+        a.addEventListener('mousedown', save, {passive:true});
+        a.addEventListener('click', save);
+    });
+})();
+loadNotif();
+setInterval(loadNotif, 30000);
+
+// ── Global Search ──────────────────────────────────────────
+let searchTimer = null;
+document.getElementById('globalSearchInput').addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    const q = this.value.trim();
+    if(q.length < 2) { document.getElementById('globalSearchResults').style.display='none'; return; }
+    searchTimer = setTimeout(() => doSearch(q), 280);
+});
+
+async function doSearch(q) {
+    const res = document.getElementById('globalSearchResults');
+    res.style.display = 'block';
+    res.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;"><i class="fas fa-spinner fa-spin"></i> جاري البحث...</div>';
+    try {
+        const r = await fetch('/api/search?q=' + encodeURIComponent(q));
+        const d = await r.json();
+        if(!d.results.length) {
+            res.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">لا توجد نتائج لـ "<strong>' + q + '</strong>"</div>';
+            return;
+        }
+        const typeColors = {product:'var(--success)',customer:'var(--info)',supplier:'var(--warning)',sale:'var(--accent)',purchase:'var(--purple)'};
+        res.innerHTML = d.results.map(r => `
+            <a href="${r.url}" style="display:flex;align-items:center;gap:12px;padding:11px 16px;
+               border-bottom:1px solid var(--border);text-decoration:none;color:var(--text);
+               transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.04)'"
+               onmouseout="this.style.background=''">
+                <div style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.05);
+                     display:flex;align-items:center;justify-content:center;font-size:13px;
+                     color:${typeColors[r.type]||'var(--text-muted)'}">
+                    <i class="fas ${r.icon}"></i>
+                </div>
+                <div>
+                    <div style="font-size:13px;font-weight:600;">${r.title}</div>
+                    <div style="font-size:11px;color:var(--text-muted);">${r.sub}</div>
+                </div>
+            </a>`).join('');
+    } catch(e) {
+        res.innerHTML = '<div style="padding:16px;color:var(--danger);font-size:13px;">خطأ في البحث</div>';
+    }
+}
+function closeGlobalSearch() { document.getElementById('globalSearchResults').style.display='none'; }
+document.addEventListener('click', e => {
+    if(!document.getElementById('globalSearchWrapper').contains(e.target)) closeGlobalSearch();
+});
+
+</script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

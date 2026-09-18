@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-sliders-h' %}
+{% block title %}تقرير تسويات المخزون{% endblock %}
+{% block page_title %}تقرير تسويات المخزون{% endblock %}
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-outline"><i class="fas fa-print"></i> طباعة</button>
+<a href="{{ url_for('reports') }}" class="btn btn-outline"><i class="fas fa-arrow-right"></i> رجوع</a>
+{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:20px;"><div class="card-body">
+    <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <div><label class="form-label">من</label><input type="date" name="date_from" value="{{ date_from }}" class="form-control"></div>
+        <div><label class="form-label">إلى</label><input type="date" name="date_to" value="{{ date_to }}" class="form-control"></div>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> عرض</button>
+    </form>
+</div></div>
+<div class="card"><div class="table-container"><table>
+    <thead><tr><th>التاريخ</th><th>المخزن</th><th>الصنف</th><th>قبل</th><th>بعد</th><th>الفرق</th><th>السبب</th><th>المستخدم</th></tr></thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td>{{ log.created_at.strftime('%Y/%m/%d %H:%M') }}</td>
+            <td>{{ log.warehouse.name if log.warehouse else '—' }}</td>
+            <td style="font-weight:600;">{{ log.product.name if log.product else '—' }}</td>
+            <td>{{ "{:,.2f}".format(log.old_quantity) }}</td>
+            <td>{{ "{:,.2f}".format(log.new_quantity) }}</td>
+            <td style="font-weight:700;color:{% if log.new_quantity >= log.old_quantity %}var(--success){% else %}var(--danger){% endif %};">
+                {{ "{:,.2f}".format(log.new_quantity - log.old_quantity) }}
+            </td>
+            <td style="font-size:12px;color:var(--text-muted);">{{ log.reason or '—' }}</td>
+            <td>{{ log.user.full_name if log.user else '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted);">لا توجد تسويات في هذه الفترة</td></tr>
+        {% endfor %}
+    </tbody>
+</table></div></div>
+{% endblock %}

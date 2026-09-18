@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-lock' %}
+{% block title %}صلاحية الدخول{% endblock %}
+{% block page_title %}لا توجد صفحة مسموحة حالياً{% endblock %}
+{% block breadcrumb %}وصول مقيد{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:560px;margin:0 auto;">
+    <div class="card-body" style="text-align:center;padding:32px 24px;">
+        <div style="font-size:48px;margin-bottom:16px;opacity:.35;"><i class="fas fa-user-shield"></i></div>
+        <h2 style="font-size:17px;font-weight:800;margin-bottom:12px;">حسابك لا يملك صلاحية «لوحة التحكم» أو أي قسم آخر</h2>
+        <p style="color:var(--text-muted);font-size:14px;line-height:1.65;margin-bottom:20px;">
+            عند اختيار <strong>صلاحيات يدوية</strong> يجب تضمين <strong>لوحة التحكم</strong> مع باقي الأقسام، وإلا لن يُفتح لك الصفحة الرئيسية بعد تسجيل الدخول.
+            اطلب من المدير تعديل صلاحياتك من <strong>المستخدمون → تعديل</strong> ووضع علامة على «لوحة التحكم» أو إلغاء الصلاحيات اليدوية لاستخدام صلاحيات الدور الافتراضية.
+        </p>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,199 @@
+{% set paper = print_paper_size|default('A4') %}
+{% set is_pos = (print_mode|default('normal') == 'pos') or (paper in ['80mm', '58mm']) %}
+{% set pos_w = '58mm' if paper == '58mm' else '80mm' %}
+{% set pos_inner = '52mm' if paper == '58mm' else '72mm' %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>فاتورة شراء {{ purchase.invoice_number }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Cairo', sans-serif; background: white; color: #1a1a1a; padding: 30px; font-size: 13px; }
+        .invoice { max-width: 750px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 2px solid #1a1a1a; }
+        .brand-name { font-family: 'Tajawal', sans-serif; font-size: 32px; font-weight: 900; color: #3b82f6; }
+        .brand-sub { font-size: 12px; color: #666; margin-top: 2px; }
+        .invoice-label { font-size: 22px; font-weight: 800; text-align: left; }
+        .invoice-num { font-size: 18px; font-weight: 700; color: #3b82f6; }
+        .invoice-date { font-size: 12px; color: #666; margin-top: 4px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        .info-box { background: #f8f9fa; border-radius: 8px; padding: 14px 16px; }
+        .info-box label { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+        .info-box .val { font-size: 15px; font-weight: 700; }
+        .info-box .sub { font-size: 11px; color: #666; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        thead { background: #1a1a1a; }
+        thead th { color: white; padding: 10px 14px; font-size: 12px; font-weight: 700; text-align: right; }
+        tbody tr:nth-child(even) { background: #f8f9fa; }
+        tbody td { padding: 10px 14px; border-bottom: 1px solid #eee; }
+        .totals { display: flex; justify-content: flex-end; }
+        .totals-box { width: 300px; }
+        .totals-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+        .totals-row.total { font-size: 17px; font-weight: 800; border-bottom: 2px solid #1a1a1a; padding: 12px 0; }
+        .totals-row.paid { color: #10b981; font-weight: 700; }
+        .totals-row.remaining { color: #ef4444; font-weight: 700; }
+        .footer { margin-top: 36px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 16px; }
+
+        /* ===== POS thermal receipt (80mm / 58mm) ===== */
+        body.pos {
+            font-family: Cairo, Arial, sans-serif;
+            font-size: 12px;
+            padding: 2mm 1.5mm;
+            width: {{ pos_inner }};
+            margin: 0 auto;
+        }
+        body.pos .invoice { max-width: 100%; width: 100%; margin: 0; }
+        body.pos .header { flex-direction: column; align-items: center; text-align: center; gap: 2px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px dashed #000; }
+        body.pos .header > div:last-child { text-align: center !important; }
+        body.pos .brand-name { font-size: 16px; }
+        body.pos .brand-sub { font-size: 10px; }
+        body.pos .invoice-label { font-size: 14px; text-align: center; }
+        body.pos .invoice-num { font-size: 12px; }
+        body.pos .invoice-date { font-size: 10px; }
+        body.pos .info-grid { display: block; margin-bottom: 6px; }
+        body.pos .info-box { background: none; padding: 3px 0; border-radius: 0; border-bottom: 1px dashed #ccc; }
+        body.pos .info-box label { font-size: 9px; letter-spacing: 0; }
+        body.pos .info-box .val { font-size: 12px; }
+        body.pos .info-box .sub { font-size: 10px; }
+        body.pos table { table-layout: fixed; }
+        body.pos thead th { padding: 4px 3px; font-size: 10.5px; }
+        body.pos tbody td { padding: 4px 3px; font-size: 10.5px; border-bottom: 1px dashed #ccc; overflow-wrap: break-word; word-break: normal; }
+        /* column widths tuned so the product-name column gets the room it needs and doesn't break mid-word */
+        body.pos table th:nth-child(1), body.pos table td:nth-child(1) { width: 8%; }
+        body.pos table th:nth-child(2), body.pos table td:nth-child(2) { width: 32%; text-align: right; }
+        body.pos table th:nth-child(3), body.pos table td:nth-child(3) { width: 12%; }
+        body.pos table th:nth-child(4), body.pos table td:nth-child(4) { width: 14%; }
+        body.pos table th:nth-child(5), body.pos table td:nth-child(5) { width: 16%; }
+        body.pos table th:nth-child(6), body.pos table td:nth-child(6) { width: 18%; }
+        body.pos .totals { display: block; }
+        body.pos .totals-box { width: 100%; }
+        body.pos .totals-row { font-size: 11px; padding: 3px 0; }
+        body.pos .totals-row.total { font-size: 14px; padding: 5px 0; }
+        body.pos .footer { font-size: 9px; margin-top: 8px; padding-top: 6px; }
+        body.pos.pos58 { font-size: 11px; }
+        body.pos.pos58 .brand-name { font-size: 14px; }
+        body.pos.pos58 thead th, body.pos.pos58 tbody td { font-size: 9px; padding: 3px 2px; }
+
+        @media print {
+            .no-print { display: none; }
+            {% if is_pos %}
+            @page { size: {{ pos_w }} 297mm; margin: 0; }
+            html, body { width: {{ pos_inner }} !important; margin: 0 auto !important; padding: 0 !important; background: #fff !important; }
+            {% else %}
+            @page { size: A4; margin: 8mm; }
+            body { padding: 10px; }
+            {% endif %}
+        }
+    </style>
+</head>
+<body class="{% if is_pos %}pos{% endif %} {% if paper == '58mm' %}pos58{% endif %}">
+<div class="invoice">
+    <div class="header">
+        <div>
+            <div class="brand-name">{{ app_brand_title | default('Silsal POS') }}</div>
+            <div class="brand-sub">{{ app_subtitle_brand | default('نظام إدارة أعمال ومحاسبة') }}</div>
+        </div>
+        <div style="text-align:left;">
+            <div class="invoice-label">فاتورة مشتريات</div>
+            <div class="invoice-num">{{ purchase.invoice_number }}</div>
+            <div class="invoice-date">{{ purchase.date.strftime('%Y/%m/%d %H:%M') }}</div>
+        </div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-box">
+            <label>المورد</label>
+            <div class="val">{{ purchase.supplier.name if purchase.supplier else '—' }}</div>
+            {% if purchase.supplier and purchase.supplier.phone %}<div class="sub">{{ purchase.supplier.phone }}</div>{% endif %}
+        </div>
+        <div class="info-box">
+            <label>المخزن / المحرر</label>
+            <div class="val">{{ purchase.warehouse.name if purchase.warehouse else '—' }}</div>
+            <div class="sub">{{ purchase.user.full_name if purchase.user else '' }}</div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th><th>الصنف</th><th>الكمية</th><th>الوحدة</th><th>السعر</th><th>الإجمالي</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in purchase.items %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><strong>{{ item.product.name }}</strong></td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.product.unit }}</td>
+                <td>{{ "{:,.2f}".format(item.price) }}</td>
+                <td><strong>{{ "{:,.2f}".format(item.total) }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <div class="totals-box">
+            <div class="totals-row"><span>المجموع الفرعي</span><span>{{ "{:,.2f}".format(purchase.subtotal) }}</span></div>
+            {% if purchase.discount > 0 %}<div class="totals-row"><span>الخصم</span><span style="color:#ef4444;">- {{ "{:,.2f}".format(purchase.discount) }}</span></div>{% endif %}
+            {% if purchase.tax > 0 %}<div class="totals-row"><span>الضريبة</span><span>{{ "{:,.2f}".format(purchase.tax) }}</span></div>{% endif %}
+            {% if purchase.withholding_tax and purchase.withholding_tax > 0 %}<div class="totals-row"><span>تحصيل/خصم</span><span style="color:#ef4444;">- {{ "{:,.2f}".format(purchase.withholding_tax) }}</span></div>{% endif %}
+            <div class="totals-row total"><span>الإجمالي</span><span>{{ "{:,.2f}".format(purchase.total) }}</span></div>
+            <div class="totals-row paid"><span>المدفوع</span><span>{{ "{:,.2f}".format(purchase.paid) }}</span></div>
+            <div class="totals-row remaining"><span>المتبقي</span><span>{{ "{:,.2f}".format(purchase.remaining) }}</span></div>
+        </div>
+    </div>
+
+    {% if purchase.notes %}<div style="margin-top:20px;padding:12px;background:#f0f7ff;border-radius:8px;font-size:12px;"><strong>ملاحظات:</strong> {{ purchase.notes }}</div>{% endif %}
+    <div class="footer">
+        <p>شكراً لتعاملكم معنا — {{ app_brand_title | default('Silsal POS') }}</p>
+    </div>
+</div>
+<div class="no-print" style="text-align:center;margin-top:20px;">
+    <button onclick="window.print()" style="padding:10px 24px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-family:Cairo;font-size:14px;font-weight:700;cursor:pointer;">
+        <i>🖨️</i> طباعة الفاتورة
+    </button>
+    <button onclick="window.close()" style="padding:10px 24px;background:#eee;border:none;border-radius:8px;font-family:Cairo;font-size:14px;cursor:pointer;margin-right:8px;">إغلاق</button>
+</div>
+<script>
+(function () {
+    function fitPosReceiptPage() {
+        if (!document.body || !document.body.classList.contains('pos')) return;
+        var el = document.querySelector('.invoice') || document.querySelector('.sheet');
+        if (!el) return;
+        var px = Math.max(el.scrollHeight, el.offsetHeight, el.getBoundingClientRect().height);
+        var mm = Math.ceil((px * 25.4) / 96) + 6;
+        if (mm < 60) mm = 60;
+        if (mm > 1800) mm = 1800;
+        var w = document.body.classList.contains('pos58') ? '58mm' : '80mm';
+        var old = document.getElementById('pos-page-fit');
+        if (old) old.remove();
+        var st = document.createElement('style');
+        st.id = 'pos-page-fit';
+        st.textContent = '@page{size:' + w + ' ' + mm + 'mm;margin:0}';
+        document.head.appendChild(st);
+    }
+    // Compute the receipt page height immediately (element already in the DOM at this point),
+    // then refine again after full load (fonts/images) and right before the browser prints.
+    fitPosReceiptPage();
+    window.addEventListener('load', function () {
+        fitPosReceiptPage();
+        setTimeout(fitPosReceiptPage, 200);
+    });
+    window.addEventListener('beforeprint', fitPosReceiptPage);
+
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('autoprint') === '1' || document.referrer.includes('/purchase/')) {
+        window.addEventListener('load', function () {
+            // Make sure the page-fit style is applied before triggering print.
+            fitPosReceiptPage();
+            window.print();
+        });
+    }
+})();
+</script>
+</body>
+</html>

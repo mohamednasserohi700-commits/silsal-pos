@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>طباعة ملصقات باركود</title>
+<style>
+    /* ===== إعادة تهيئة عامة ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        font-family: 'Arial', sans-serif;
+        background: #e8e8e8;
+        color: #000;
+        direction: rtl;
+    }
+
+    /* ===== شريط التحكم (مخفي عند الطباعة) ===== */
+    .no-print {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        padding: 10px 16px;
+        background: #1a1a2e;
+        color: #fff;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    .no-print .btn-print {
+        padding: 8px 20px;
+        border-radius: 6px;
+        border: none;
+        background: #4ade80;
+        color: #000;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .no-print .btn-print:hover { background: #22c55e; }
+    .no-print .btn-back {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,.3);
+        background: transparent;
+        color: #fff;
+        font-size: 13px;
+        cursor: pointer;
+    }
+    .no-print .btn-back:hover { background: rgba(255,255,255,.1); }
+    .no-print .info-badge {
+        background: rgba(255,255,255,.15);
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 12px;
+        color: #e2e8f0;
+    }
+    .no-print .hint {
+        font-size: 11.5px;
+        color: #94a3b8;
+        margin-right: auto;
+    }
+
+    /* ===== ورقة الطباعة ===== */
+    .print-page {
+        background: #fff;
+        margin: 16px auto;
+        padding: 0;
+        box-shadow: 0 0 20px rgba(0,0,0,.15);
+    }
+
+    /* وضع الورقة A4 */
+    .print-page.sheet-mode {
+        width: 210mm;
+        min-height: 297mm;
+        padding: 8mm;
+    }
+
+    /* وضع الطابعة الحرارية / الملصقات الفردية */
+    .print-page.roll-mode {
+        width: fit-content;
+        min-width: {{ preset.w_mm }}mm;
+        padding: 0;
+    }
+
+    /* ===== شبكة الملصقات (A4 / ورقة عادية) ===== */
+    .label-grid {
+        display: grid;
+        grid-template-columns: repeat({{ preset.cols }}, {{ preset.w_mm }}mm);
+        gap: 1.5mm;
+        justify-content: start;
+    }
+
+    /* ===== الملصق الواحد ===== */
+    .label {
+        width: {{ preset.w_mm }}mm;
+        height: {{ preset.h_mm }}mm;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        text-align: center;
+        padding: 0.5mm 0.8mm;
+        background: #fff;
+        position: relative;
+    }
+
+    /* حدود في وضع الورقة */
+    .sheet-mode .label {
+        border: 0.4px solid #bbb;
+        border-radius: 1px;
+    }
+
+    /* فصل صفحات في وضع اللفافة */
+    .roll-mode .label {
+        border: none;
+        border-bottom: 0.5px dashed #ddd;
+        page-break-after: always;
+        break-after: page;
+    }
+    .roll-mode .label:last-child {
+        border-bottom: none;
+        page-break-after: auto;
+        break-after: auto;
+    }
+
+    /* ===== محتوى الملصق ===== */
+    .label .lbl-name {
+        font-size: {{ name_font }}px;
+        font-weight: 800;
+        line-height: 1.2;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #000;
+        margin-bottom: 0.3mm;
+        direction: rtl;
+    }
+    .label svg.bc {
+        width: 96%;
+        flex-shrink: 0;
+        display: block;
+    }
+    .label .lbl-barcode-num {
+        font-size: {{ bnum_font }}px;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 0.3px;
+        color: #111;
+        margin-top: -0.5mm;
+        direction: ltr;
+    }
+    .label .lbl-code {
+        font-size: {{ code_font }}px;
+        color: #555;
+        font-family: 'Courier New', monospace;
+        direction: ltr;
+    }
+    .label .lbl-price {
+        font-size: {{ price_font }}px;
+        font-weight: 900;
+        color: #000;
+        margin-top: 0.3mm;
+        direction: ltr;
+    }
+    .label .lbl-price .currency {
+        font-size: {{ currency_font }}px;
+        font-weight: 600;
+        color: #333;
+        margin-right: 1px;
+    }
+
+    /* ===== حالة الخطأ ===== */
+    .label .bc-error {
+        font-size: 7px;
+        color: #cc0000;
+        padding: 2px 4px;
+        border: 0.5px solid #ffaaaa;
+        border-radius: 2px;
+        background: #fff5f5;
+    }
+
+    /* ===== إعدادات الطباعة ===== */
+    @media print {
+        html, body { background: #fff !important; }
+        .no-print { display: none !important; }
+        .print-page {
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+        }
+
+        {% if is_sheet %}
+        .print-page.sheet-mode {
+            padding: 6mm !important;
+        }
+        @page {
+            size: A4 portrait;
+            margin: 4mm;
+        }
+        {% else %}
+        @page {
+            size: {{ preset.w_mm }}mm {{ preset.h_mm }}mm;
+            margin: 0;
+        }
+        {% endif %}
+    }
+</style>
+</head>
+<body>
+
+<!-- شريط التحكم -->
+<div class="no-print">
+    <button class="btn-print" onclick="window.print()">
+        🖨️ طباعة الآن
+    </button>
+    <button class="btn-back" onclick="history.back()">
+        ← رجوع
+    </button>
+    <span class="info-badge">📦 {{ labels|length }} ملصق</span>
+    <span class="info-badge">📐 {{ preset.w_mm }}×{{ preset.h_mm }} مم</span>
+    <span class="info-badge">{{ preset.label }}</span>
+    <span class="hint">تأكد من ضبط المتصفح: بدون هوامش، ضمن حجم الصفحة</span>
+</div>
+
+<!-- صفحة الطباعة -->
+<div class="print-page {% if is_sheet %}sheet-mode{% else %}roll-mode{% endif %}">
+    <div class="label-grid" id="labelGrid">
+        {% for l in labels %}
+        <div class="label">
+            {% if show_name %}
+            <div class="lbl-name">{{ l.name }}</div>
+            {% endif %}
+
+            <svg class="bc" data-code="{{ l.barcode }}" data-fmt="{{ l.fmt }}"></svg>
+            <div class="lbl-barcode-num">{{ l.barcode }}</div>
+
+            {% if show_code and l.code %}
+            <div class="lbl-code">{{ l.code }}</div>
+            {% endif %}
+
+            {% if show_price %}
+            <div class="lbl-price">
+                {{ "%.2f"|format(l.price) }}<span class="currency"> {{ currency }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/vendor/JsBarcode.all.min.js') }}"></script>
+<script>
+(function () {
+    'use strict';
+
+    /* ================================================
+     * اكتشاف تلقائي لصيغة الباركود
+     * ================================================ */
+    function detectFormat(code) {
+        if (!code) return 'CODE128';
+        code = String(code).trim();
+
+        // EAN / UPC — أرقام بعدد محدد بالضبط
+        if (/^\d{13}$/.test(code)) return 'EAN13';
+        if (/^\d{12}$/.test(code)) return 'UPC';
+        if (/^\d{8}$/.test(code))  return 'EAN8';
+
+        // CODE39 فقط للأكواد التي تبدأ بحرف كبير (الأرقام القصيرة تذهب لـ CODE128)
+        if (/^[A-Z][A-Z0-9\-\.\ \$\/\+\%]+$/.test(code) && code.length >= 3) return 'CODE39';
+
+        // الافتراضي: CODE128 يقبل كل شيء
+        return 'CODE128';
+    }
+
+    /* ================================================
+     * حساب أبعاد الباركود حسب حجم الملصق
+     * ================================================ */
+    var W_MM = {{ preset.w_mm }};
+    var H_MM = {{ preset.h_mm }};
+    var PX_PER_MM = 3.7795;
+
+    function calcBarcodeHeight(svgEl) {
+        // ارتفاع الملصق بالبيكسل
+        var totalH = H_MM * PX_PER_MM;
+
+        // حجز مساحة للنصوص (اسم + رقم + كود + سعر)
+        var textReserve = 0;
+        {% if show_name %}    textReserve += {{ name_font }} + 1.5; {% endif %}
+        textReserve += {{ bnum_font }} + 1;
+        {% if show_code %}    textReserve += {{ code_font }} + 0.5; {% endif %}
+        {% if show_price %}   textReserve += {{ price_font }} + 1; {% endif %}
+
+        // المساحة المتبقية للباركود (بالبيكسل)
+        var available = totalH - textReserve - (0.5 * PX_PER_MM * 2);
+        return Math.max(15, Math.min(available, 55));
+    }
+
+    function calcBarWidth(svgEl) {
+        var totalW = W_MM * PX_PER_MM;
+        // عرض شريط واحد
+        var bar = Math.max(0.8, (totalW * 0.9) / 100);
+        return Math.min(bar, 2.0);
+    }
+
+    /* ================================================
+     * توليد الباركودات
+     * ================================================ */
+    function renderAll() {
+        var svgs = document.querySelectorAll('svg.bc');
+        svgs.forEach(function (svg) {
+            var code = (svg.dataset.code || '').trim();
+            if (!code) {
+                showError(svg, 'لا يوجد كود');
+                return;
+            }
+
+            // استخدم الصيغة المُمرَّرة من السيرفر إن وُجدت، وإلا اكتشفها تلقائياً
+            var fmt = (svg.dataset.fmt || '').trim() || detectFormat(code);
+
+            var h = calcBarcodeHeight(svg);
+            var w = calcBarWidth(svg);
+
+            var opts = {
+                format: fmt, displayValue: false,
+                margin: 0, marginTop: 1, marginBottom: 0,
+                height: h, width: w,
+                background: '#ffffff', lineColor: '#000000',
+            };
+            var drawn = false;
+            try { JsBarcode(svg, code, opts); drawn = true; } catch(e1) {}
+            if (!drawn && fmt !== 'CODE128') {
+                try { opts.format = 'CODE128'; JsBarcode(svg, code, opts); drawn = true; } catch(e2) {}
+            }
+            if (!drawn) { showError(svg, 'كود غير صالح: ' + code); }
+        });
+    }
+
+    function showError(svg, msg) {
+        var div = document.createElement('div');
+        div.className = 'bc-error';
+        div.textContent = '⚠ ' + msg;
+        svg.parentNode.replaceChild(div, svg);
+    }
+
+    /* ================================================
+     * تهيئة
+     * ================================================ */
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', renderAll);
+    } else {
+        renderAll();
+    }
+
+    /* طباعة تلقائية بعد التحميل (اختياري) */
+    {% if auto_print %}
+    window.addEventListener('load', function () {
+        setTimeout(function () { window.print(); }, 400);
+    });
+    {% endif %}
+
+})();
+</script>
+</body>
+</html>

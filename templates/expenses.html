@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-file-invoice-dollar' %}
+{% block title %}المصاريف{% endblock %}
+{% block page_title %}إدارة المصاريف{% endblock %}
+{% block breadcrumb %}سجل المصاريف والنفقات{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('add_expense') }}" class="btn btn-primary"><i class="fas fa-plus"></i> إضافة مصروف</a>{% endblock %}
+
+{% block content %}
+{% set total = expenses | sum(attribute='amount') %}
+<div class="stats-grid" style="margin-bottom:20px;">
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="fas fa-receipt"></i></div>
+        <div>
+            <div class="stat-value">{{ "{:,.0f}".format(total) }}</div>
+            <div class="stat-label">إجمالي المصاريف</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fas fa-list"></i></div>
+        <div>
+            <div class="stat-value">{{ expenses|length }}</div>
+            <div class="stat-label">عدد المصروفات</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-container"><table>
+        <thead><tr><th>التاريخ</th><th>التصنيف</th><th>الوصف</th><th>الفرع</th><th>المبلغ</th><th>المحرر</th><th>إجراءات</th></tr></thead>
+        <tbody>
+            {% for e in expenses %}
+            <tr>
+                <td style="color:var(--text-muted);">{{ e.date.strftime('%Y/%m/%d') }}</td>
+                <td><span class="badge badge-warning">{{ e.category }}</span></td>
+                <td>{{ e.description or '—' }}</td>
+                <td>{{ e.branch.name if e.branch else '—' }}</td>
+                <td style="font-weight:700;color:var(--danger);">{{ "{:,.2f}".format(e.amount) }}</td>
+                <td style="color:var(--text-muted);">{{ e.user.full_name if e.user else '—' }}</td>
+                <td style="white-space:nowrap;">
+                    <a href="{{ url_for('edit_expense', id=e.id) }}" class="btn btn-outline btn-xs" title="تعديل"><i class="fas fa-edit"></i></a>
+                    {% if can('record_delete') %}
+                    <form method="POST" action="{{ url_for('delete_expense', id=e.id) }}" style="display:inline;" onsubmit="return confirm('حذف هذا المصروف؟');">
+                        <button type="submit" class="btn btn-danger btn-xs" title="حذف"><i class="fas fa-trash"></i></button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7"><div class="empty-state"><i class="fas fa-receipt"></i><h3>لا توجد مصاريف مسجلة</h3></div></td></tr>
+            {% endfor %}
+        </tbody>
+    </table></div>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-truck' %}
+{% block title %}تقرير أرصدة الموردين{% endblock %}
+{% block page_title %}تقرير أرصدة الموردين{% endblock %}
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-outline"><i class="fas fa-print"></i> طباعة</button>
+<a href="{{ url_for('reports') }}" class="btn btn-outline"><i class="fas fa-arrow-right"></i> رجوع</a>
+{% endblock %}
+{% block content %}
+<div class="stats-grid" style="margin-bottom:20px;">
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-money-bill-wave"></i></div>
+        <div><div class="stat-value" style="color:var(--warning);">{{ "{:,.2f}".format(total_payable) }}</div><div class="stat-label">إجمالي الذمم الدائنة</div></div>
+    </div>
+</div>
+<div class="card"><div class="table-container"><table>
+    <thead><tr><th>الكود</th><th>المورد</th><th>الهاتف</th><th>الرصيد المستحق</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+    <tbody>
+        {% for s in suppliers %}
+        <tr>
+            <td style="color:var(--text-muted);">{{ s.code }}</td>
+            <td style="font-weight:600;">{{ s.name }}</td>
+            <td>{{ s.phone or '—' }}</td>
+            <td style="font-weight:800;font-size:15px;color:{% if s.balance > 0 %}var(--warning){% else %}var(--success){% endif %};">
+                {{ "{:,.2f}".format(s.balance) }}
+            </td>
+            <td>
+                {% if s.balance > 0 %}<span class="badge badge-warning">مستحق (له)</span>
+                {% elif s.balance < 0 %}<span class="badge badge-success">مدين لنا (عليه)</span>
+                {% else %}<span class="badge badge-success">مسوّى</span>{% endif %}
+            </td>
+            <td><a href="{{ url_for('supplier_statement', id=s.id) }}" class="btn btn-outline btn-xs"><i class="fas fa-file-alt"></i> كشف حساب</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table></div></div>
+{% endblock %}

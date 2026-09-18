@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>مذكرة مخزون {{ memo.memo_number }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: Cairo, sans-serif; padding: 24px; font-size: 13px; color: #111; }
+        h1 { font-size: 18px; margin-bottom: 4px; }
+        .meta { color: #555; margin-bottom: 16px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: right; }
+        th { background: #222; color: #fff; }
+        .sum { margin-top: 16px; font-weight: 800; font-size: 15px; }
+    </style>
+</head>
+<body>
+    <p><button type="button" onclick="window.print()">طباعة</button></p>
+    <h1>مذكرة مخزون — {{ memo.memo_number }}</h1>
+    <div class="meta">
+        {% if memo.memo_type == 'issue_production' %}<strong>صرف مواد خام</strong>{% else %}<strong>استلام تام</strong>{% endif %}
+        — المخزن: {{ memo.warehouse.name if memo.warehouse else '—' }}
+        — مرجع الإنتاج: {{ memo.production_ref or '—' }}
+        — {{ memo.date.strftime('%Y/%m/%d %H:%M') }}
+    </div>
+    <table>
+        <thead><tr><th>#</th><th>صنف</th><th>كمية</th><th>وحدة</th></tr></thead>
+        <tbody>
+            {% for it in memo.items %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ it.product.name if it.product else '—' }}</td>
+                <td>{{ it.quantity }}</td>
+                <td>{{ it.unit_note or (it.product.unit if it.product else '') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="sum">
+        إجمالي الكمية: {{ "{:,.4g}".format(total_qty) }}
+        {% if memo.memo_type == 'receive_production' %}(مستلمة){% else %}(مصروفة){% endif %}
+    </div>
+    {% if memo.notes %}<p style="margin-top:12px;">ملاحظات: {{ memo.notes }}</p>{% endif %}
+</body>
+</html>

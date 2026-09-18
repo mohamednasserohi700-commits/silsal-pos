@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-clipboard-list' %}
+{% block title %}مذكرة {{ memo.memo_number }}{% endblock %}
+{% block page_title %}مذكرة مخزون {{ memo.memo_number }}{% endblock %}
+{% block breadcrumb %}مذكرات مخزون / تفاصيل{% endblock %}
+{% block topbar_actions %}
+<button type="button" class="btn btn-outline" onclick="window.open('{{ url_for('inventory_memo_print', id=memo.id) }}','_blank')"><i class="fas fa-print"></i> طباعة</button>
+<a href="{{ url_for('inventory_memos_list') }}" class="btn btn-outline">قائمة المذكرات</a>
+{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:16px;"><div class="card-body">
+    <div class="form-grid-3">
+        <div><span class="form-label">النوع</span>
+            {% if memo.memo_type == 'issue_production' %}
+            <div><span class="badge badge-warning">صرف مواد خام</span></div>
+            {% else %}
+            <div><span class="badge badge-success">استلام تام</span></div>
+            {% endif %}
+        </div>
+        <div><span class="form-label">المخزن</span><div style="font-weight:700;">{{ memo.warehouse.name if memo.warehouse else '—' }}</div></div>
+        <div><span class="form-label">مرجع الإنتاج</span><div>{{ memo.production_ref or '—' }}</div></div>
+        <div><span class="form-label">إجمالي الكمية</span>
+            <div style="font-size:18px;font-weight:800;color:var(--accent);">{{ "{:,.4g}".format(total_qty) }}
+                {% if memo.memo_type == 'receive_production' %}<span style="font-size:12px;color:var(--success);font-weight:600;">(مستلمة)</span>{% else %}<span style="font-size:12px;color:var(--warning);font-weight:600;">(مصروفة)</span>{% endif %}
+            </div>
+        </div>
+        <div><span class="form-label">المستخدم</span><div>{{ memo.user.full_name if memo.user else '—' }}</div></div>
+        <div><span class="form-label">التاريخ</span><div>{{ memo.date.strftime('%Y/%m/%d %H:%M') }}</div></div>
+    </div>
+    {% if memo.notes %}<p style="margin-top:14px;color:var(--text-muted);font-size:13px;"><strong>ملاحظات:</strong> {{ memo.notes }}</p>{% endif %}
+</div></div>
+
+<div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-list"></i> البنود</div></div>
+<div class="table-container"><table>
+    <thead><tr><th>#</th><th>الصنف</th><th>الكمية</th><th>الوحدة (ملاحظة)</th></tr></thead>
+    <tbody>
+        {% for it in memo.items %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td style="font-weight:600;">{{ it.product.name if it.product else '—' }}</td>
+            <td style="font-weight:700;">{{ it.quantity }}</td>
+            <td style="color:var(--text-muted);font-size:12px;">{{ it.unit_note or (it.product.unit if it.product else '—') }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table></div></div>
+
+<div style="margin-top:16px;">
+    <form method="POST" action="{{ url_for('inventory_memo_delete', id=memo.id) }}" style="display:inline;" onsubmit="return confirm('حذف المذكرة وعكس أثرها على المخزون؟');">
+        <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> حذف المذكرة</button>
+    </form>
+</div>
+{% endblock %}

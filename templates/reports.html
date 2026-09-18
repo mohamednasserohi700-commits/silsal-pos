@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-chart-bar' %}
+{% block title %}التقارير{% endblock %}
+{% block page_title %}مركز التقارير{% endblock %}
+{% block breadcrumb %}جميع تقارير النظام{% endblock %}
+{% block content %}
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;">
+
+    <a href="{{ url_for('report_dashboard') }}" style="text-decoration:none;">
+        <div class="card" style="padding:22px;cursor:pointer;border-color:rgba(245,158,11,.2);transition:all .25s;"
+             onmouseover="this.style.borderColor='var(--accent)';this.style.transform='translateY(-3px)'"
+             onmouseout="this.style.borderColor='rgba(245,158,11,.2)';this.style.transform=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                <div class="stat-icon gold" style="width:48px;height:48px;font-size:22px;"><i class="fas fa-chart-pie"></i></div>
+                <div>
+                    <div style="font-size:15px;font-weight:700;">التقارير التحليلية</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">مخططات شاملة للأداء</div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">مبيعات شهرية، أفضل منتجات، أفضل عملاء، وملخص مالي بالمخططات</div>
+        </div>
+    </a>
+
+    <a href="{{ url_for('report_profit') }}" style="text-decoration:none;">
+        <div class="card" style="padding:22px;cursor:pointer;border-color:rgba(16,185,129,.2);transition:all .25s;"
+             onmouseover="this.style.borderColor='var(--success)';this.style.transform='translateY(-3px)'"
+             onmouseout="this.style.borderColor='rgba(16,185,129,.2)';this.style.transform=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                <div class="stat-icon green" style="width:48px;height:48px;font-size:22px;"><i class="fas fa-balance-scale"></i></div>
+                <div>
+                    <div style="font-size:15px;font-weight:700;">الأرباح والخسائر</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">حساب الربح الصافي</div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">إيرادات المبيعات مقابل تكلفة المشتريات والمصاريف مع هامش الربح</div>
+        </div>
+    </a>
+
+    <a href="{{ url_for('report_sales') }}" style="text-decoration:none;">
+        <div class="card" style="padding:22px;cursor:pointer;transition:all .25s;"
+             onmouseover="this.style.borderColor='rgba(245,158,11,.4)';this.style.transform='translateY(-3px)'"
+             onmouseout="this.style.borderColor='var(--border)';this.style.transform=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                <div class="stat-icon gold" style="width:48px;height:48px;font-size:22px;"><i class="fas fa-cash-register"></i></div>
+                <div>
+                    <div style="font-size:15px;font-weight:700;">تقرير المبيعات</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">جميع فواتير المبيعات</div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">تصفية حسب التاريخ مع الإجماليات والمحصّل والمتبقي</div>
+        </div>
+    </a>
+
+    <a href="{{ url_for('report_expenses') }}" style="text-decoration:none;">
+        <div class="card" style="padding:22px;cursor:pointer;border-color:rgba(239,68,68,.2);transition:all .25s;"
+             onmouseover="this.style.borderColor='var(--danger)';this.style.transform='translateY(-3px)'"
+             onmouseout="this.style.borderColor='rgba(239,68,68,.2)';this.style.transform=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                <div class="stat-icon red" style="width:48px;height:48px;font-size:22px;"><i class="fas fa-file-invoice-dollar"></i></div>
+                <div>
+                    <div style="font-size:15px;font-weight:700;">تقرير المصاريف</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">توزيع المصاريف</div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">مصاريف تفصيلية مع مخطط توزيع حسب التصنيف والفترة الزمنية</div>
+        </div>
+    </a>
+
+    <a href="{{ url_for('report_customers') }}" style="text-decoration:none;">
+        <div class="card" style="padding:22px;cursor:pointer;border-color:rgba(59,130,246,.2);transition:all .25s;"
+             onmouseover="this.style.borderColor='var(--info)';this.style.transform='translateY(-3px)'"
+             onmouseout="this.style.borderColor='rgba(59,130,246,.2)';this.style.transform=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                <div class="stat-icon blue" style="width:48px;height:48px;font-size:22px;"><i class="fas fa-user-clock"></i></div>
+                <div>
+                    <div style="font-size:15px;font-weight:700;">أرصدة العملاء</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">الذمم المدينة</div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">قائمة العملاء ذوي الأرصدة المستحقة مع حالة كل عميل</div>
+        </div>
+    </a>
+
+    <a href="{{ url_for('report_suppliers') }}" style="text-decoration:none;">
+        <div class="card" style="padding:22px;cursor:pointer;border-color:rgba(245,158,11,.2);transition:all .25s;"
+             onmouseover="this.style.borderColor='var(--warning)';this.style.transform='translateY(-3px)'"
+             onmouseout="this.style.borderColor='rgba(245,158,11,.2)';this.style.transform=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                <div class="stat-icon gold" style="width:48px;height:48px;font-size:22px;"><i class="fas fa-truck-loading"></i></div>
+                <div>
+                    <div style="font-size:15px;font-weight:700;">أرصدة الموردين</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">الذمم الدائنة</div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">قائمة الموردين ومبالغ مستحقة الدفع</div>
+        </div>
+    </a>
+
+    <a href="{{ url_for('report_low_stock') }}" style="text-decoration:none;">
+        <div class="card" style="padding:22px;cursor:pointer;border-color:rgba(239,68,68,.2);transition:all .25s;"
+             onmouseover="this.style.borderColor='var(--danger)';this.style.transform='translateY(-3px)'"
+             onmouseout="this.style.borderColor='rgba(239,68,68,.2)';this.style.transform=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                <div class="stat-icon red" style="width:48px;height:48px;font-size:22px;"><i class="fas fa-exclamation-triangle"></i></div>
+                <div>
+                    <div style="font-size:15px;font-weight:700;">تنبيه نقص المخزون</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">أصناف تحت الحد</div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">أصناف وصلت للحد الأدنى أو نفدت، مع كمية النقص</div>
+        </div>
+    </a>
+
+    <a href="{{ url_for('report_inventory') }}" style="text-decoration:none;">
+        <div class="card" style="padding:22px;cursor:pointer;transition:all .25s;"
+             onmouseover="this.style.borderColor='rgba(245,158,11,.4)';this.style.transform='translateY(-3px)'"
+             onmouseout="this.style.borderColor='var(--border)';this.style.transform=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                <div class="stat-icon purple" style="width:48px;height:48px;font-size:22px;"><i class="fas fa-clipboard-list"></i></div>
+                <div>
+                    <div style="font-size:15px;font-weight:700;">جرد المخزون</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">قيمة المخزون الكاملة</div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">رصيد جميع الأصناف في كل المخازن مع القيمة الإجمالية</div>
+        </div>
+    </a>
+
+    <a href="{{ url_for('report_stock_adjustments') }}" style="text-decoration:none;">
+        <div class="card" style="padding:22px;cursor:pointer;border-color:rgba(245,158,11,.2);transition:all .25s;"
+             onmouseover="this.style.borderColor='var(--accent)';this.style.transform='translateY(-3px)'"
+             onmouseout="this.style.borderColor='rgba(245,158,11,.2)';this.style.transform=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                <div class="stat-icon gold" style="width:48px;height:48px;font-size:22px;"><i class="fas fa-sliders-h"></i></div>
+                <div>
+                    <div style="font-size:15px;font-weight:700;">تقرير التسويات</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">تسوية المخزون اليدوية</div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">سجل التعديلات على الأرصدة (قبل / بعد / السبب / المستخدم)</div>
+        </div>
+    </a>
+
+    <a href="{{ url_for('transfers') }}" style="text-decoration:none;">
+        <div class="card" style="padding:22px;cursor:pointer;transition:all .25s;"
+             onmouseover="this.style.borderColor='rgba(139,92,246,.4)';this.style.transform='translateY(-3px)'"
+             onmouseout="this.style.borderColor='var(--border)';this.style.transform=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                <div class="stat-icon purple" style="width:48px;height:48px;font-size:22px;"><i class="fas fa-exchange-alt"></i></div>
+                <div>
+                    <div style="font-size:15px;font-weight:700;">تقرير التحويلات</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">سجل التحويلات</div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">جميع تحويلات المخازن — موافق عليها، معلقة، مرفوضة</div>
+        </div>
+    </a>
+
+    <!-- Backup -->
+    <a href="{{ url_for('backup') }}" style="text-decoration:none;">
+        <div class="card" style="padding:22px;cursor:pointer;border-color:rgba(20,184,166,.2);transition:all .25s;"
+             onmouseover="this.style.borderColor='#14b8a6';this.style.transform='translateY(-3px)'"
+             onmouseout="this.style.borderColor='rgba(20,184,166,.2)';this.style.transform=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                <div class="stat-icon teal" style="width:48px;height:48px;font-size:22px;"><i class="fas fa-download"></i></div>
+                <div>
+                    <div style="font-size:15px;font-weight:700;">تصدير البيانات</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">نسخة احتياطية JSON</div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">تحميل نسخة احتياطية من بيانات العملاء، الموردين، والأصناف</div>
+        </div>
+    </a>
+
+</div>
+{% endblock %}

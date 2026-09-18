@@ -1,0 +1,41 @@
+{# ============================================================
+   قالب CSS مشترك للطباعة الحرارية 80mm / 58mm — يُضاف داخل
+   وسم <style> في كل صفحة طباعة (فاتورة / مرتجع / كشف حساب).
+   يعتمد على المتغيرين print_mode و print_paper_size القادمين
+   من الراوت. لا يُستخدم مباشرة كصفحة، بل عبر include.
+   ============================================================ #}
+{% set _paper = (print_paper_size|default('A4')) %}
+body.pos { font-size: 12px; padding: 6px; }
+body.pos .brand-name { font-size: 16px; }
+body.pos .invoice, body.pos .sheet { max-width: 78mm; margin: 0 auto; }
+body.pos.pos58 .invoice, body.pos.pos58 .sheet { max-width: 50mm; }
+body.pos .header { margin-bottom: 10px; padding-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+body.pos .invoice-label { font-size: 14px; }
+body.pos .invoice-num { font-size: 12px; }
+body.pos .invoice-date { font-size: 10px; }
+body.pos .info-grid { display: block; margin-bottom: 10px; }
+body.pos .info-box { padding: 6px 8px; margin-bottom: 6px; border-radius: 4px; }
+body.pos .info-box .val { font-size: 12px; }
+body.pos h3 { font-size: 11px; margin: 10px 0 5px; }
+body.pos table { margin-bottom: 8px; }
+body.pos table th, body.pos table td { padding: 4px 3px; font-size: 10.5px; word-break: break-word; }
+body.pos.pos58 table th, body.pos.pos58 table td { font-size: 9px; padding: 3px 2px; }
+body.pos .totals-box { width: 100%; }
+body.pos .totals-row { padding: 4px 0; font-size: 11px; }
+body.pos .totals-row.total { font-size: 13px; padding: 6px 0; }
+body.pos .footer { margin-top: 10px; padding-top: 8px; font-size: 9.5px; }
+
+@media print {
+    .no-print { display: none !important; }
+    body.pos .col-hide-pos { display: none !important; }
+    body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    {% if _paper == '80mm' %}
+    @page { size: 80mm auto; margin: 2mm; }
+    body { padding: 0 2mm; }
+    {% elif _paper == '58mm' %}
+    @page { size: 58mm auto; margin: 1.5mm; }
+    body { padding: 0 1mm; }
+    {% else %}
+    @page { size: A4; margin: 10mm; }
+    {% endif %}
+}

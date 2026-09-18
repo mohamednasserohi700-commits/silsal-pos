@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-users' %}
+{% block title %}تقرير أرصدة العملاء{% endblock %}
+{% block page_title %}تقرير أرصدة العملاء{% endblock %}
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-outline"><i class="fas fa-print"></i> طباعة</button>
+<a href="{{ url_for('reports') }}" class="btn btn-outline"><i class="fas fa-arrow-right"></i> رجوع</a>
+{% endblock %}
+{% block content %}
+<div class="stats-grid" style="margin-bottom:20px;">
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="fas fa-hand-holding-usd"></i></div>
+        <div><div class="stat-value" style="color:var(--danger);">{{ "{:,.2f}".format(total_receivable) }}</div><div class="stat-label">إجمالي الذمم المدينة</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fas fa-users"></i></div>
+        <div><div class="stat-value">{{ customers | selectattr('balance', 'gt', 0) | list | length }}</div><div class="stat-label">عملاء لديهم أرصدة</div></div>
+    </div>
+</div>
+<div class="card"><div class="table-container"><table>
+    <thead><tr><th>الكود</th><th>العميل</th><th>الهاتف</th><th>حد الائتمان</th><th>الرصيد المستحق</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+    <tbody>
+        {% for c in customers %}
+        <tr>
+            <td style="color:var(--text-muted);">{{ c.code }}</td>
+            <td style="font-weight:600;">{{ c.name }}</td>
+            <td>{{ c.phone or '—' }}</td>
+            <td>{{ "{:,.2f}".format(c.credit_limit) }}</td>
+            <td style="font-weight:800;font-size:15px;color:{% if c.balance > 0 %}var(--danger){% else %}var(--success){% endif %};">
+                {{ "{:,.2f}".format(c.balance) }}
+            </td>
+            <td>
+                {% if c.balance > c.credit_limit and c.credit_limit > 0 %}
+                <span class="badge badge-danger pulse">تجاوز الحد</span>
+                {% elif c.balance > 0 %}
+                <span class="badge badge-warning">مديون (عليه)</span>
+                {% elif c.balance < 0 %}
+                <span class="badge badge-info">دائن (له)</span>
+                {% else %}
+                <span class="badge badge-success">مسوّى</span>
+                {% endif %}
+            </td>
+            <td><a href="{{ url_for('customer_statement', id=c.id) }}" class="btn btn-outline btn-xs"><i class="fas fa-file-alt"></i> كشف حساب</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table></div></div>
+{% endblock %}

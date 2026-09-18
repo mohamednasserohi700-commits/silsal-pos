@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-chart-line' %}
+{% block title %}لوحة التقارير التحليلية{% endblock %}
+{% block page_title %}لوحة التقارير التحليلية{% endblock %}
+{% block breadcrumb %}تحليلات شاملة للأداء{% endblock %}
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-outline"><i class="fas fa-print"></i> طباعة</button>
+<a href="{{ url_for('reports') }}" class="btn btn-outline"><i class="fas fa-arrow-right"></i> رجوع</a>
+{% endblock %}
+
+{% block extra_styles %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+.chart-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.chart-card h3 { font-size: 14px; font-weight: 700; color: var(--text-muted); margin-bottom: 16px; display:flex; align-items:center; gap:8px; }
+.chart-card h3 i { color: var(--accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- KPI Summary -->
+<div class="stats-grid" style="margin-bottom: 24px;">
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fas fa-coins"></i></div>
+        <div>
+            <div class="stat-value">{{ "{:,.0f}".format(total_sales) }}</div>
+            <div class="stat-label">صافي المبيعات (بعد المرتجعات)</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-shopping-cart"></i></div>
+        <div>
+            <div class="stat-value">{{ "{:,.0f}".format(total_purchases) }}</div>
+            <div class="stat-label">صافي المشتريات (بعد المرتجعات)</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-chart-line"></i></div>
+        <div>
+            <div class="stat-value" style="color: {% if total_sales - total_purchases > 0 %}var(--success){% else %}var(--danger){% endif %};">
+                {{ "{:,.0f}".format(total_sales - total_purchases) }}
+            </div>
+            <div class="stat-label">هامش الربح الإجمالي</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="fas fa-receipt"></i></div>
+        <div>
+            <div class="stat-value">{{ "{:,.0f}".format(total_expenses) }}</div>
+            <div class="stat-label">إجمالي المصاريف</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-percentage"></i></div>
+        <div>
+            <div class="stat-value">{{ "{:,.0f}".format(total_sales_discounts) }}</div>
+            <div class="stat-label">إجمالي خصومات المبيعات (سطور + فواتير)</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fas fa-users"></i></div>
+        <div>
+            <div class="stat-value" style="color: var(--danger);">{{ "{:,.0f}".format(total_receivables) }}</div>
+            <div class="stat-label">ذمم مدينة (عملاء)</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-truck"></i></div>
+        <div>
+            <div class="stat-value" style="color: var(--warning);">{{ "{:,.0f}".format(total_payables) }}</div>
+            <div class="stat-label">ذمم دائنة (موردون)</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Grid -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
+    <!-- Monthly Sales Chart -->
+    <div class="chart-card">
+        <h3><i class="fas fa-chart-bar"></i> المبيعات الشهرية (آخر 6 أشهر)</h3>
+        <canvas id="monthlySalesChart" height="120"></canvas>
+    </div>
+
+    <!-- Top Products Pie -->
+    <div class="chart-card">
+        <h3><i class="fas fa-boxes"></i> أعلى 5 منتجات مبيعاً</h3>
+        <canvas id="topProductsChart" height="180"></canvas>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+    <!-- Top Customers -->
+    <div class="chart-card">
+        <h3><i class="fas fa-users"></i> أعلى 5 عملاء من حيث الشراء</h3>
+        <canvas id="topCustomersChart" height="160"></canvas>
+    </div>
+
+    <!-- Financial Summary Doughnut -->
+    <div class="chart-card">
+        <h3><i class="fas fa-chart-pie"></i> ملخص مالي</h3>
+        <canvas id="financialChart" height="160"></canvas>
+    </div>
+</div>
+
+<!-- Top Products Table -->
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-header">
+        <div class="card-title"><i class="fas fa-trophy"></i> أعلى المنتجات أداءً</div>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead><tr><th>#</th><th>المنتج</th><th>الكمية المباعة</th><th>الإيراد</th></tr></thead>
+            <tbody>
+                {% for p in top_products %}
+                <tr>
+                    <td>
+                        <span style="width:28px;height:28px;background:{% if loop.index==1 %}linear-gradient(135deg,#f59e0b,#e07b00){% elif loop.index==2 %}linear-gradient(135deg,#94a3b8,#64748b){% elif loop.index==3 %}linear-gradient(135deg,#cd7f32,#a85c1a){% else %}var(--card){% endif %};display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-size:11px;font-weight:800;color:{% if loop.index<=3 %}#1a1f2e{% else %}var(--text-muted){% endif %};">{{ loop.index }}</span>
+                    </td>
+                    <td style="font-weight:600;">{{ p.name }}</td>
+                    <td>{{ "{:,.2f}".format(p.qty or 0) }}</td>
+                    <td style="font-weight:700;color:var(--accent);">{{ "{:,.2f}".format(p.revenue or 0) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px;">لا توجد بيانات مبيعات</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const chartDefaults = {
+    color: '#94a3b8',
+    font: { family: 'Cairo, sans-serif', size: 12 }
+};
+Chart.defaults.color = chartDefaults.color;
+Chart.defaults.font = chartDefaults.font;
+
+const gridColor = 'rgba(255,255,255,0.05)';
+const accentColor = '#f59e0b';
+
+// Monthly Sales Bar Chart
+const monthlyData = {{ monthly_sales | tojson }};
+new Chart(document.getElementById('monthlySalesChart'), {
+    type: 'bar',
+    data: {
+        labels: monthlyData.map(d => d.label),
+        datasets: [{
+            label: 'المبيعات',
+            data: monthlyData.map(d => d.total),
+            backgroundColor: monthlyData.map((_, i) =>
+                i === monthlyData.length - 1 ? 'rgba(245,158,11,0.9)' : 'rgba(245,158,11,0.4)'
+            ),
+            borderColor: accentColor,
+            borderWidth: 1,
+            borderRadius: 6,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { grid: { color: gridColor }, ticks: { callback: v => v.toLocaleString('ar') } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+
+// Top Products Pie
+const topProds = {{ top_products | map(attribute=0) | list | tojson }} ;
+const topRevs = [{% for p in top_products %}{{ p.revenue or 0 }},{% endfor %}];
+const topNames = [{% for p in top_products %}"{{ p.name }}",{% endfor %}];
+const pieColors = ['#f59e0b','#3b82f6','#10b981','#8b5cf6','#ef4444'];
+new Chart(document.getElementById('topProductsChart'), {
+    type: 'doughnut',
+    data: {
+        labels: topNames,
+        datasets: [{ data: topRevs, backgroundColor: pieColors, borderWidth: 2, borderColor: '#1a1f2e' }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } }
+        },
+        cutout: '65%'
+    }
+});
+
+// Top Customers Bar
+const custNames = [{% for c in top_customers %}"{{ c.name }}",{% endfor %}];
+const custTotals = [{% for c in top_customers %}{{ c.total or 0 }},{% endfor %}];
+new Chart(document.getElementById('topCustomersChart'), {
+    type: 'bar',
+    data: {
+        labels: custNames,
+        datasets: [{
+            label: 'الإجمالي',
+            data: custTotals,
+            backgroundColor: 'rgba(59,130,246,0.7)',
+            borderColor: '#3b82f6',
+            borderWidth: 1,
+            borderRadius: 6,
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { color: gridColor }, ticks: { callback: v => v.toLocaleString() } },
+            y: { grid: { display: false } }
+        }
+    }
+});
+
+// Financial Summary
+new Chart(document.getElementById('financialChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['مبيعات', 'مشتريات', 'مصاريف'],
+        datasets: [{
+            data: [{{ total_sales }}, {{ total_purchases }}, {{ total_expenses }}],
+            backgroundColor: ['rgba(245,158,11,0.8)', 'rgba(59,130,246,0.8)', 'rgba(239,68,68,0.8)'],
+            borderColor: '#1a1f2e', borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 12 } } } },
+        cutout: '60%'
+    }
+});
+</script>
+{% endblock %}

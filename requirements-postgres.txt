@@ -1,0 +1,6 @@
+# سائق PostgreSQL — ثبّته فقط عند استخدام DATABASE_URL مع postgresql://
+# على Python 3.14 قد يفشل البناء؛ استخدم Python 3.12/3.13 للسيرفر أو ثبّت psycopg (الإصدار 3):
+#   pip install "psycopg[binary]"
+# ثم في .env استخدم: postgresql+psycopg://user:pass@host/db
+#
+psycopg2-binary==2.9.9

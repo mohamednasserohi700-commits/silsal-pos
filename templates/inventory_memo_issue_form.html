@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-minus-circle' %}
+{% block title %}صرف مواد للإنتاج{% endblock %}
+{% block page_title %}صرف مواد خام لصالة الإنتاج{% endblock %}
+{% block content %}
+<div class="card" style="max-width:900px;"><div class="card-body">
+<p style="color:var(--text-muted);font-size:12px;margin-bottom:16px;">يُخصم من رصيد المخزن المختار (مواد خام مشتراة مسبقاً) ويُسجَّل رقم أمر/صالة الإنتاج للمراجعة.</p>
+<form method="POST">
+    <div class="form-grid-2">
+        <div class="form-group">
+            <label class="form-label">المخزن *</label>
+            <select name="warehouse_id" class="form-control" required id="warehouseId">
+                <option value="">—</option>
+                {% for w in warehouses %}<option value="{{ w.id }}">{{ w.name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">رقم أمر / صالة الإنتاج</label>
+            <input type="text" name="production_ref" class="form-control" placeholder="مثال: PO-2026-001">
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="form-label">ملاحظات</label>
+        <input type="text" name="notes" class="form-control">
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-list"></i> الأصناف والكميات</div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="addRow()"><i class="fas fa-plus"></i></button>
+        </div>
+        <div class="table-container"><table>
+            <thead><tr><th>الصنف</th><th>الكمية</th><th></th></tr></thead>
+            <tbody id="itemsBody">
+                <tr class="r">
+                    <td>
+                        <div style="position:relative">
+                            <input type="text" class="form-control product-search" placeholder="ابحث..." autocomplete="off">
+                            <input type="hidden" name="product_id[]" class="pid">
+                            <div class="product-dropdown" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--secondary);border:1px solid var(--border);border-radius:8px;z-index:500;max-height:200px;overflow-y:auto;"></div>
+                        </div>
+                    </td>
+                    <td><input type="number" name="quantity[]" class="form-control" value="1" min="0.01" step="0.01"></td>
+                    <td><button type="button" class="btn btn-danger btn-xs" onclick="delRow(this)"><i class="fas fa-trash"></i></button></td>
+                </tr>
+            </tbody>
+        </table></div>
+    </div>
+    <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn btn-warning"><i class="fas fa-save"></i> حفظ الصرف</button>
+        <a href="{{ url_for('inventory_memos_list') }}" class="btn btn-outline">رجوع</a>
+    </div>
+</form>
+</div></div>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/product_line_picker.js') }}"></script>
+<script>
+function addRow() {
+    var t = document.getElementById('itemsBody');
+    var r = t.querySelector('.r').cloneNode(true);
+    r.querySelector('.pid').value = '';
+    r.querySelector('.product-search').value = '';
+    r.querySelector('.product-dropdown').style.display = 'none';
+    r.querySelector('input[name="quantity[]"]').value = '1';
+    t.appendChild(r);
+    ErpProductLinePicker.bind(r.querySelector('.product-search'), {
+        getWarehouseId: () => document.getElementById('warehouseId').value,
+        requireWarehouse: true,
+        useCost: false
+    });
+}
+function delRow(b) {
+    if (document.querySelectorAll('#itemsBody .r').length > 1) b.closest('tr').remove();
+}
+ErpProductLinePicker.bindAll('.product-search', {
+    getWarehouseId: () => document.getElementById('warehouseId').value,
+    requireWarehouse: true,
+    useCost: false
+});
+</script>
+{% endblock %}

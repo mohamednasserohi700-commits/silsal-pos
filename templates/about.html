@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-info-circle' %}
+{% block title %}حول النظام{% endblock %}
+{% block page_title %}حول النظام{% endblock %}
+{% block breadcrumb %}حول{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:520px;margin:2rem auto;text-align:center;">
+    <div class="card-body" style="padding:2.5rem 1.75rem;">
+        <div style="font-size:1.35rem;font-weight:800;margin-bottom:1.25rem;color:var(--accent);line-height:1.6;">
+            {{ app_brand_title }}
+        </div>
+        <div style="font-size:0.95rem;line-height:2.1;color:var(--text);">
+            <div>برمجة : <strong>محمد ناصر عبدالله</strong></div>
+            <div>شركة : <strong>System Makers</strong></div>
+            <div>نظام : <strong>{{ settings.get('program_label', 'Silsal POS') }}</strong></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:2rem;">
+            <a href="https://wa.me/201103763082" target="_blank" rel="noopener noreferrer" class="btn btn-success">
+                <i class="fab fa-whatsapp"></i> تواصل واتساب
+            </a>
+            <a href="https://www.facebook.com/profile.php?id=100095476066188" target="_blank" rel="noopener noreferrer" class="btn btn-info">
+                <i class="fab fa-facebook-f"></i> صفحة فيسبوك
+            </a>
+        </div>
+
+        <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
+            <div style="font-weight:800;margin-bottom:10px;color:var(--text);">الثيمات</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="erpSetTheme('fiori')"><i class="fas fa-building"></i> SAP Fiori</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="erpSetTheme('light')"><i class="fas fa-globe"></i> Nova POS</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="erpSetTheme('dark')"><i class="fas fa-moon"></i> داكن</button>
+            </div>
+            <div style="margin-top:10px;font-size:12px;color:var(--text-muted);line-height:1.8;">
+                يتم حفظ اختيار الثيم على هذا الجهاز تلقائياً.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,630 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-cash-register' %}
+{% block title %}{{ 'تعديل فاتورة مبيعات' if edit_mode else 'فاتورة مبيعات جديدة' }}{% endblock %}
+{% block page_title %}{{ 'تعديل فاتورة مبيعات' if edit_mode else 'فاتورة مبيعات جديدة' }}{% endblock %}
+{% block breadcrumb %}المبيعات / {{ 'تعديل فاتورة' if edit_mode else 'فاتورة جديدة' }}{% endblock %}
+{% block extra_styles %}
+<style>
+    .sidebar { display: none !important; }
+    .invoice-products-sidebar {
+        position: fixed;
+        right: 0;
+        top: 0;
+        width: var(--sidebar-w);
+        height: 100vh;
+        z-index: 1001;
+        background: var(--secondary);
+        color: var(--text);
+        border-left: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+    }
+    .invoice-products-head { padding: 14px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+    .invoice-products-list { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; }
+    .invoice-products-item {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        background: var(--card);
+        color: var(--text);
+    }
+    .invoice-products-item:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .invoice-products-item .name { font-size: 13px; font-weight: 800; color: var(--text); }
+    .invoice-products-item .meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .invoice-products-help { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+    @media (max-width: 900px) { .invoice-products-sidebar { display: none; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<aside class="invoice-products-sidebar">
+    <div class="invoice-products-head">
+        <div style="font-size:14px;font-weight:800;"><i class="fas fa-boxes" style="color:var(--accent);margin-left:6px;"></i> قائمة الأصناف</div>
+        <input type="text" id="invoiceProductSidebarSearch" class="form-control" placeholder="ابحث بالاسم / الكود / الباركود" autocomplete="off" style="margin-top:10px;">
+        <div class="invoice-products-help">دبل كليك على الصنف لإضافته للفاتورة</div>
+    </div>
+    <div id="invoiceProductsSidebarList" class="invoice-products-list"></div>
+</aside>
+
+<form method="POST" id="saleForm" action="{{ form_action if edit_mode else url_for('new_sale') }}">
+    <div style="display: grid; grid-template-columns: 1fr 350px; gap: 20px; align-items: start;">
+        <div>
+            <div class="card" style="margin-bottom: 16px;">
+                <div class="card-header"><div class="card-title"><i class="fas fa-info-circle"></i> بيانات الفاتورة</div></div>
+                <div class="card-body">
+                    <div class="form-grid-3">
+                        <div class="form-group">
+                            <label class="form-label">العميل</label>
+                            <select name="customer_id" class="form-control" id="customerSelect">
+                                <option value="">— عميل نقدي —</option>
+                                {% for c in customers %}<option value="{{ c.id }}" {% if default_customer_id and c.id == default_customer_id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">المخزن *</label>
+                            <select name="warehouse_id" class="form-control" required id="warehouseId" onchange="updateWarehouse()">
+                                <option value="">اختر المخزن...</option>
+                                {% for wh in warehouses %}<option value="{{ wh.id }}" {% if default_warehouse_id and wh.id == default_warehouse_id %}selected{% endif %}>{{ wh.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ملاحظات</label>
+                            <input type="text" name="notes" class="form-control" placeholder="ملاحظات..." value="{{ sale.notes or '' if edit_mode else '' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-list"></i> الأصناف</div>
+                    <div class="erp-barcode-wrap">
+                        <div class="erp-barcode-field">
+                            <i class="fas fa-barcode"></i>
+                            <input type="text" id="barcodeInput" class="form-control erp-barcode-input" placeholder="امسح/أدخل باركود" autocomplete="off">
+                        </div>
+                        {% if not edit_mode %}
+                        <button type="button" onclick="openHeldModal()" class="btn btn-outline btn-sm" style="position:relative;">
+                            <i class="fas fa-pause-circle"></i> الفواتير المعلقة
+                            <span id="heldCountBadge" class="badge badge-warning" style="display:none;position:absolute;top:-8px;left:-8px;border-radius:20px;padding:1px 6px;font-size:10px;"></span>
+                        </button>
+                        <button type="button" onclick="holdSale()" class="btn btn-outline btn-sm"><i class="fas fa-hand-paper"></i> تعليق الفاتورة</button>
+                        {% endif %}
+                        <button type="button" onclick="addItem()" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة صنف</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead><tr>
+                            <th style="width:36%">الصنف</th><th style="width:12%">متاح</th>
+                            <th style="width:14%">الكمية</th><th style="width:14%">السعر</th>
+                            <th style="width:10%">خصم%</th><th style="width:10%">الإجمالي</th>
+                            <th style="width:4%"></th>
+                        </tr></thead>
+                        <tbody id="itemsBody">
+                            <tr class="item-row">
+                                <td>
+                                    <div style="position:relative">
+                                        <input type="text" class="form-control product-search" placeholder="ابحث..." autocomplete="off">
+                                        <input type="hidden" name="product_id[]" class="pid">
+                                        <div class="product-dropdown" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--secondary);border:1px solid var(--border);border-radius:8px;z-index:500;max-height:200px;overflow-y:auto;"></div>
+                                    </div>
+                                    <button type="button" class="btn btn-xs btn-outline clear-row-product" style="margin-top:6px;"><i class="fas fa-eraser"></i> مسح الصنف</button>
+                                </td>
+                                <td><input class="form-control avail" readonly style="color:var(--success);width:9ch;min-width:8ch;max-width:12ch;font-size:16px;font-weight:800;text-align:center;padding:8px 4px;font-variant-numeric:tabular-nums;"></td>
+                                <td><input type="number" name="quantity[]" class="form-control qty" value="1" min="1" step="1" oninput="calcRow(this)" style="min-width:96px;width:100%;font-size:15px;text-align:center;padding:8px 6px;"></td>
+                                <td><input type="number" name="price[]" class="form-control price" value="0" min="0" step="0.01" oninput="calcRow(this)" style="min-width:96px;width:100%;font-size:15px;text-align:center;padding:8px 6px;"></td>
+                                <td><input type="number" name="discount[]" class="form-control disc" value="0" min="0" max="100" step="0.01" oninput="calcRow(this)" style="min-width:88px;width:100%;font-size:15px;text-align:center;padding:8px 6px;"></td>
+                                <td><input class="form-control row-total" readonly style="font-weight:700; color:var(--accent);"></td>
+                                <td><button type="button" onclick="removeItem(this)" class="btn btn-danger btn-xs"><i class="fas fa-trash"></i></button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="barcodeStatus" class="erp-barcode-status"></div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card" style="position: sticky; top: 80px;">
+                <div class="card-header"><div class="card-title"><i class="fas fa-calculator"></i> الحساب</div></div>
+                <div class="card-body">
+                    <div style="space-y: 12px;">
+                        <div style="display:flex; justify-content:space-between; padding: 10px 0; border-bottom: 1px solid var(--border);">
+                            <span style="color: var(--text-muted);">المجموع الفرعي</span>
+                            <span id="subtotalDisplay" style="font-weight: 700;">0.00</span>
+                        </div>
+                        <div style="padding: 10px 0; border-bottom: 1px solid var(--border);">
+                            <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                                <label class="form-label" style="margin: 0;">خصم إجمالي</label>
+                            </div>
+                            <input type="number" name="total_discount" id="totalDiscount" class="form-control" value="{{ sale.discount if edit_mode else 0 }}" min="0" step="0.01" oninput="calcTotal()">
+                        </div>
+                        <div style="padding: 10px 0; border-bottom: 1px solid var(--border);">
+                            <label class="form-label" style="margin-bottom: 8px; display:block;">ضريبة القيمة المضافة (مبلغ — قابل للتعديل) {% if sale_tax_auto %}<span class="badge badge-info" style="font-size:10px;">ثابتة {{ sale_tax_percent }}%</span>{% endif %}</label>
+                            {% if not sale_tax_auto %}
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+                                <button type="button" class="btn btn-xs btn-outline" onclick="applySaleVatPreset(14)">احتساب 14%</button>
+                                <button type="button" class="btn btn-xs btn-outline" onclick="applySaleVatPreset(5)">احتساب 5%</button>
+                            </div>
+                            {% endif %}
+                            <input type="number" name="tax" id="tax" class="form-control" value="{{ sale.tax if edit_mode else 0 }}" min="0" step="0.01" oninput="calcTotal()" {% if sale_tax_auto %}readonly style="opacity:.85" title="تُحسب تلقائياً من إعدادات الضريبة الثابتة"{% endif %}>
+                            {% if sale_tax_auto %}<small style="color:var(--text-muted);font-size:11px;display:block;margin-top:6px;">تُحسب تلقائياً على المجموع بعد خصم الفاتورة حسب إعدادات الفرع.</small>{% endif %}
+                        </div>
+                        <div style="display:flex; justify-content:space-between; padding: 14px 0; border-bottom: 1px solid var(--border);">
+                            <span style="font-size: 16px; font-weight: 700;">الإجمالي</span>
+                            <span id="totalDisplay" style="font-size: 20px; font-weight: 800; color: var(--accent);">0.00</span>
+                        </div>
+                        <div style="padding: 10px 0;">
+                            <label class="form-label" style="margin-bottom: 8px; display:block;">المبلغ المدفوع</label>
+                            <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px;">
+                                <input type="number" name="paid" id="paid" class="form-control" value="{{ sale.paid if edit_mode else 0 }}" min="0" step="0.01" oninput="onPaidInput()" style="flex:1;">
+                                <button type="button" class="btn btn-success" style="white-space:nowrap;padding:8px 12px;" onclick="applyCashPay()" title="تعبئة المدفوع بإجمالي الفاتورة">دفع كاش</button>
+                            </div>
+                            <label id="ajalLabel" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(245,158,11,.06);margin-top:6px;">
+                                <input type="checkbox" name="is_ajal" id="isAjal" value="1" {% if edit_mode and (sale.paid or 0) <= 0 %}checked{% endif %} onchange="onAjalChange()" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+                                <span style="font-size:13px;font-weight:600;color:var(--accent);"><i class="fas fa-clock" style="margin-left:4px;"></i> آجل — سيُسدَّد لاحقاً</span>
+                            </label>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; padding: 10px 0; background: rgba(239,68,68,0.08); border-radius: 8px; padding: 12px;">
+                            <span style="color: var(--danger);">المتبقي</span>
+                            <span id="remainingDisplay" style="font-weight: 700; color: var(--danger);">0.00</span>
+                        </div>
+                    </div>
+                    <button type="submit" id="submitBtn" class="btn btn-primary" style="width: 100%; margin-top: 16px; padding: 14px;">
+                        <i class="fas fa-check-circle"></i> {{ 'حفظ التعديلات' if edit_mode else 'حفظ الفاتورة' }}
+                    </button>
+                    <a href="{{ url_for('sale_detail', id=sale.id) if edit_mode else url_for('sales') }}" class="btn btn-outline" style="width: 100%; margin-top: 8px; justify-content: center;">إلغاء</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if not edit_mode %}
+<!-- Held Sales Modal -->
+<div class="modal-overlay" id="heldSalesModal">
+    <div class="modal" style="max-width:640px;">
+        <div class="modal-title"><i class="fas fa-pause-circle"></i> الفواتير المعلقة</div>
+        <div id="heldSalesList" style="max-height:60vh;overflow-y:auto;">
+            <div style="text-align:center;padding:20px;color:var(--text-muted);">جارِ التحميل...</div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" onclick="closeHeldModal()" class="btn btn-outline">إغلاق</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/product_line_picker.js') }}"></script>
+<script src="{{ url_for('static', filename='js/invoice_barcode.js') }}"></script>
+<script>
+var SALE_TAX_AUTO = {{ sale_tax_auto|default(false)|tojson }};
+var SALE_TAX_PCT = {{ sale_tax_percent|default(0) }};
+let subtotal = 0;
+
+function calcRow(input) {
+    const row = input.closest('tr');
+    const qtyEl = row.querySelector('.qty');
+    let qty = parseFloat(qtyEl.value) || 0;
+    const mode = row.dataset.qtyMode || 'int';
+    if (mode === 'half') {
+        qty = Math.max(0.5, Math.round(qty * 2) / 2);
+        qtyEl.value = qty.toString();
+    } else {
+        qty = Math.max(1, Math.round(qty));
+        qtyEl.value = qty.toString();
+    }
+    const price = parseFloat(row.querySelector('.price').value) || 0;
+    const disc = parseFloat(row.querySelector('.disc').value) || 0;
+    const total = qty * price * (1 - disc/100);
+    row.querySelector('.row-total').value = total.toFixed(2);
+    calcTotal();
+}
+
+function applySaleVatPreset(pct) {
+    if (SALE_TAX_AUTO) return;
+    let sub = 0;
+    document.querySelectorAll('.row-total').forEach(el => sub += parseFloat(el.value) || 0);
+    const disc = parseFloat(document.getElementById('totalDiscount').value) || 0;
+    const base = Math.max(0, sub - disc);
+    document.getElementById('tax').value = (Math.round(base * (pct / 100) * 100) / 100).toFixed(2);
+    calcTotal();
+}
+
+function calcTotal() {
+    let sub = 0;
+    document.querySelectorAll('.row-total').forEach(el => sub += parseFloat(el.value) || 0);
+    subtotal = sub;
+    document.getElementById('subtotalDisplay').textContent = sub.toFixed(2);
+    const disc = parseFloat(document.getElementById('totalDiscount').value) || 0;
+    const baseAfterDisc = Math.max(0, sub - disc);
+    let tax = parseFloat(document.getElementById('tax').value) || 0;
+    if (SALE_TAX_AUTO) {
+        tax = Math.round(baseAfterDisc * (SALE_TAX_PCT / 100) * 100) / 100;
+        document.getElementById('tax').value = tax.toFixed(2);
+    }
+    const total = baseAfterDisc + tax;
+    document.getElementById('totalDisplay').textContent = total.toFixed(2);
+    calcRemaining();
+}
+
+function onPaidInput() {
+    document.getElementById('isAjal').checked = false;
+    calcRemaining();
+    updateSubmitBtn();
+}
+function onAjalChange() {
+    if (document.getElementById('isAjal').checked) {
+        document.getElementById('paid').value = '0';
+        calcRemaining();
+    }
+    updateSubmitBtn();
+}
+function updateSubmitBtn() {
+    const paid = parseFloat(document.getElementById('paid').value) || 0;
+    const ajal = document.getElementById('isAjal').checked;
+    const btn  = document.getElementById('submitBtn');
+    if (paid > 0 || ajal) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.title = '';
+    } else {
+        btn.disabled = true;
+        btn.style.opacity = '0.45';
+        btn.title = 'يرجى إدخال المبلغ المدفوع أو تحديد آجل';
+    }
+}
+function calcRemaining() {
+    const disc = parseFloat(document.getElementById('totalDiscount').value) || 0;
+    let tax = parseFloat(document.getElementById('tax').value) || 0;
+    if (SALE_TAX_AUTO) {
+        tax = Math.round(Math.max(0, subtotal - disc) * (SALE_TAX_PCT / 100) * 100) / 100;
+    }
+    const total = Math.max(0, subtotal - disc) + tax;
+    const paid = parseFloat(document.getElementById('paid').value) || 0;
+    document.getElementById('remainingDisplay').textContent = Math.max(0, total - paid).toFixed(2);
+}
+
+function applyCashPay() {
+    const disc = parseFloat(document.getElementById('totalDiscount').value) || 0;
+    let tax = parseFloat(document.getElementById('tax').value) || 0;
+    if (SALE_TAX_AUTO) {
+        tax = Math.round(Math.max(0, subtotal - disc) * (SALE_TAX_PCT / 100) * 100) / 100;
+    }
+    const total = Math.max(0, subtotal - disc) + tax;
+    document.getElementById('paid').value = total.toFixed(2);
+    document.getElementById('isAjal').checked = false;
+    calcRemaining();
+    updateSubmitBtn();
+}
+
+function addItem() {
+    const tbody = document.getElementById('itemsBody');
+    const row = document.querySelector('.item-row').cloneNode(true);
+    row.querySelectorAll('input:not([type=hidden])').forEach(i => { if(i.name && !i.name.includes('quantity') && !i.name.includes('price') && !i.name.includes('discount')) i.value = ''; else if(i.name.includes('quantity')) i.value = '1'; else if(i.name.includes('price') || i.name.includes('discount')) i.value = '0'; });
+    row.querySelector('.pid').value = '';
+    row.querySelector('.avail').value = '';
+    row.querySelector('.row-total').value = '';
+    row.querySelector('.product-search').value = '';
+    row.querySelector('.product-dropdown').style.display = 'none';
+    tbody.appendChild(row);
+    ErpProductLinePicker.bind(row.querySelector('.product-search'), {
+        getWarehouseId: function () { return document.getElementById('warehouseId').value; },
+        requireWarehouse: true,
+        useCost: false,
+        mergeDuplicates: true,
+        limit: 20
+    });
+}
+
+function removeItem(btn) {
+    const rows = document.querySelectorAll('.item-row');
+    if(rows.length > 1) { btn.closest('tr').remove(); calcTotal(); }
+}
+
+function updateWarehouse() {
+    document.querySelectorAll('.product-search').forEach(el => { el.value = ''; el.closest('tr').querySelector('.pid').value = ''; el.closest('tr').querySelector('.avail').value = ''; });
+    loadSidebarProducts();
+}
+
+updateSubmitBtn();
+ErpProductLinePicker.bindAll('.product-search', {
+    getWarehouseId: function () { return document.getElementById('warehouseId').value; },
+    requireWarehouse: true,
+    useCost: false,
+    mergeDuplicates: true,
+    limit: 20
+});
+
+ErpInvoiceBarcode.bind('#barcodeInput', {
+    itemsBodyId: 'itemsBody',
+    statusSelector: '#barcodeStatus',
+    getWarehouseId: function () { return document.getElementById('warehouseId').value; },
+    requireWarehouse: true,
+    useCost: false,
+    autoFocus: true
+});
+
+document.getElementById('saleForm').addEventListener('submit', function (e) {
+    const rows = document.querySelectorAll('#itemsBody tr.item-row');
+    for (const row of rows) {
+        const pid = (row.querySelector('.pid')?.value || '').trim();
+        const search = (row.querySelector('.product-search')?.value || '').trim();
+        if (search && !pid) {
+            e.preventDefault();
+            if (typeof window.showToast === 'function') window.showToast('لا يمكن إضافة صنف بدون تحديده من القائمة أو الباركود', 'danger');
+            row.querySelector('.product-search')?.focus();
+            return;
+        }
+    }
+});
+
+async function fetchSidebarProducts(q) {
+    const wh = document.getElementById('warehouseId')?.value || '';
+    const params = new URLSearchParams();
+    params.set('q', q || '');
+    params.set('limit', '120');
+    if (wh) params.set('warehouse_id', wh);
+    const res = await fetch('/products/search?' + params.toString());
+    const data = await res.json();
+    return Array.isArray(data) ? data : (data.items || []);
+}
+
+function findExistingRowByPid(pid) {
+    const rows = document.querySelectorAll('#itemsBody tr.item-row');
+    for (const row of rows) {
+        if ((row.querySelector('.pid')?.value || '') === String(pid)) return row;
+    }
+    return null;
+}
+
+function findEmptyRow() {
+    const rows = document.querySelectorAll('#itemsBody tr.item-row');
+    for (const row of rows) {
+        if (!(row.querySelector('.pid')?.value || '').trim()) return row;
+    }
+    return null;
+}
+
+function addProductFromSidebar(p) {
+    let row = findExistingRowByPid(p.id);
+    if (row) {
+        const qty = row.querySelector('.qty');
+        if (qty) {
+            const step = parseFloat(qty.step || '1') || 1;
+            qty.value = String((parseFloat(qty.value || '0') || 0) + step);
+            calcRow(qty);
+        }
+        return;
+    }
+    row = findEmptyRow();
+    if (!row) {
+        addItem();
+        row = document.querySelector('#itemsBody tr.item-row:last-child');
+    }
+    if (!row) return;
+    if (window.ErpProductLinePicker && typeof window.ErpProductLinePicker.applyToRow === 'function') {
+        window.ErpProductLinePicker.applyToRow(row, p, { useCost: false, mergeDuplicates: true });
+    }
+}
+
+function renderSidebarProducts(items) {
+    const list = document.getElementById('invoiceProductsSidebarList');
+    if (!list) return;
+    if (!items.length) {
+        list.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-muted);">لا توجد أصناف</div>';
+        return;
+    }
+    list.innerHTML = items.map(p => `
+        <div class="invoice-products-item" data-id="${p.id}" tabindex="0">
+            <div class="name">${p.name || ''}</div>
+            <div class="meta">كود: ${p.code || '-'} | باركود: ${p.barcode || '-'} </div>
+            <div class="meta">سعر: ${Number(p.price || 0).toFixed(2)} | المتاح: ${p.stock ?? p.qty ?? 0} ${p.unit || ''}</div>
+        </div>
+    `).join('');
+    const map = new Map(items.map(p => [String(p.id), p]));
+    list.querySelectorAll('.invoice-products-item').forEach(el => {
+        el.addEventListener('dblclick', () => {
+            const p = map.get(el.dataset.id || '');
+            if (p) addProductFromSidebar(p);
+        });
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const p = map.get(el.dataset.id || '');
+                if (p) addProductFromSidebar(p);
+            }
+        });
+    });
+}
+
+let sidebarSearchTimer = null;
+function loadSidebarProducts() {
+    const q = document.getElementById('invoiceProductSidebarSearch')?.value || '';
+    fetchSidebarProducts(q).then(renderSidebarProducts).catch(() => {
+        const list = document.getElementById('invoiceProductsSidebarList');
+        if (list) list.innerHTML = '<div style="padding:12px;text-align:center;color:var(--danger);">تعذر تحميل الأصناف</div>';
+    });
+}
+
+document.getElementById('invoiceProductSidebarSearch')?.addEventListener('input', function () {
+    clearTimeout(sidebarSearchTimer);
+    sidebarSearchTimer = setTimeout(loadSidebarProducts, 220);
+});
+document.getElementById('warehouseId')?.addEventListener('change', loadSidebarProducts);
+loadSidebarProducts();
+
+function fillEditRow(row, item) {
+    row.querySelector('.pid').value = item.id;
+    row.querySelector('.product-search').value = item.name;
+    row.querySelector('.avail').value = item.stock;
+    row.querySelector('.qty').value = item.qty;
+    row.querySelector('.price').value = item.price;
+    row.querySelector('.disc').value = item.discount || 0;
+    row.querySelector('.product-dropdown').style.display = 'none';
+    calcRow(row.querySelector('.qty'));
+}
+
+function fillItemsIntoForm(items) {
+    // بيمسح الصفوف الحالية ويعبي الفاتورة بأصناف جديدة (تُستخدم عند استرجاع فاتورة معلّقة)
+    var tbody = document.getElementById('itemsBody');
+    tbody.querySelectorAll('tr.item-row').forEach(function (r, idx) { if (idx > 0) r.remove(); });
+    var firstRow = tbody.querySelector('tr.item-row');
+    if (firstRow) {
+        firstRow.querySelector('.pid').value = '';
+        firstRow.querySelector('.product-search').value = '';
+        firstRow.querySelector('.avail').value = '';
+        firstRow.querySelector('.qty').value = '1';
+        firstRow.querySelector('.price').value = '0';
+        firstRow.querySelector('.disc').value = '0';
+    }
+    (items || []).forEach(function (item, idx) {
+        var row;
+        if (idx === 0) {
+            row = document.querySelector('#itemsBody tr.item-row');
+        } else {
+            addItem();
+            row = document.querySelector('#itemsBody tr.item-row:last-child');
+        }
+        if (row) fillEditRow(row, item);
+    });
+    calcTotal();
+    updateSubmitBtn();
+}
+
+var EDIT_MODE = {{ edit_mode|default(false)|tojson }};
+var EDIT_ITEMS = {{ edit_items|default([])|tojson }};
+if (EDIT_MODE && EDIT_ITEMS.length) {
+    fillItemsIntoForm(EDIT_ITEMS);
+}
+
+{% if not edit_mode %}
+// ===== Hold / Park Sale (تعليق الفاتورة مؤقتاً) =====
+
+function holdSale() {
+    const rows = document.querySelectorAll('#itemsBody tr.item-row');
+    let hasItem = false;
+    for (const row of rows) {
+        const pid = (row.querySelector('.pid')?.value || '').trim();
+        const search = (row.querySelector('.product-search')?.value || '').trim();
+        if (search && !pid) {
+            if (typeof window.showToast === 'function') window.showToast('لا يمكن تعليق صنف بدون تحديده من القائمة أو الباركود', 'danger');
+            row.querySelector('.product-search')?.focus();
+            return;
+        }
+        if (pid) hasItem = true;
+    }
+    if (!hasItem) {
+        if (typeof window.showToast === 'function') window.showToast('أضف صنفاً واحداً على الأقل قبل التعليق', 'danger');
+        return;
+    }
+    if (!document.getElementById('warehouseId').value) {
+        if (typeof window.showToast === 'function') window.showToast('اختر المخزن أولاً', 'danger');
+        return;
+    }
+    const form = document.getElementById('saleForm');
+    form.action = "{{ url_for('hold_sale') }}";
+    form.submit();
+}
+
+function openHeldModal() {
+    document.getElementById('heldSalesModal').classList.add('open');
+    loadHeldSales();
+}
+function closeHeldModal() {
+    document.getElementById('heldSalesModal').classList.remove('open');
+}
+document.getElementById('heldSalesModal')?.addEventListener('click', function (e) {
+    if (e.target === this) closeHeldModal();
+});
+
+function renderHeldSales(rows) {
+    const list = document.getElementById('heldSalesList');
+    if (!list) return;
+    if (!rows.length) {
+        list.innerHTML = '<div class="empty-state" style="padding:24px;"><i class="fas fa-pause-circle"></i><h3>لا توجد فواتير معلّقة حالياً</h3></div>';
+        return;
+    }
+    list.innerHTML = rows.map(h => `
+        <div class="invoice-products-item" style="display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:default;">
+            <div>
+                <div class="name">${h.hold_number} — ${h.customer_name}</div>
+                <div class="meta">${h.warehouse_name} | ${h.items_count} صنف | ${h.total.toFixed(2)} | ${h.created_at}</div>
+                <div class="meta">بواسطة: ${h.user_name}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+                <button type="button" class="btn btn-primary btn-xs" onclick="resumeHeld(${h.id})"><i class="fas fa-play"></i> استرجاع</button>
+                <button type="button" class="btn btn-danger btn-xs" onclick="deleteHeld(${h.id})"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function loadHeldSales() {
+    const list = document.getElementById('heldSalesList');
+    if (list) list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">جارِ التحميل...</div>';
+    fetch('/api/sales/held')
+        .then(r => r.json())
+        .then(rows => {
+            renderHeldSales(Array.isArray(rows) ? rows : []);
+            updateHeldBadge(Array.isArray(rows) ? rows.length : 0);
+        })
+        .catch(() => {
+            if (list) list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--danger);">تعذر تحميل الفواتير المعلقة</div>';
+        });
+}
+
+function updateHeldBadge(count) {
+    const badge = document.getElementById('heldCountBadge');
+    if (!badge) return;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = 'inline-block';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function resumeHeld(id) {
+    fetch(`/api/sales/held/${id}/resume`, { method: 'POST' })
+        .then(r => {
+            if (!r.ok) throw new Error('resume_failed');
+            return r.json();
+        })
+        .then(data => {
+            document.getElementById('customerSelect').value = data.customer_id || '';
+            document.getElementById('warehouseId').value = data.warehouse_id || '';
+            const notesInput = document.querySelector('input[name="notes"]');
+            if (notesInput) notesInput.value = data.notes || '';
+            document.getElementById('totalDiscount').value = data.total_discount || 0;
+            document.getElementById('tax').value = data.tax || 0;
+            loadSidebarProducts();
+            fillItemsIntoForm(data.items || []);
+            closeHeldModal();
+            if (typeof window.showToast === 'function') window.showToast('تم استرجاع الفاتورة المعلقة', 'success');
+        })
+        .catch(() => {
+            if (typeof window.showToast === 'function') window.showToast('تعذر استرجاع الفاتورة (قد تكون استُرجعت من جهاز آخر)', 'danger');
+            loadHeldSales();
+        });
+}
+
+function deleteHeld(id) {
+    if (!confirm('هل تريد إلغاء هذه الفاتورة المعلقة نهائياً؟')) return;
+    fetch(`/api/sales/held/${id}/delete`, { method: 'POST' })
+        .then(r => r.json())
+        .then(() => loadHeldSales())
+        .catch(() => {
+            if (typeof window.showToast === 'function') window.showToast('تعذر إلغاء الفاتورة المعلقة', 'danger');
+        });
+}
+
+// عدد الفواتير المعلقة عند فتح الصفحة (بدون فتح المودال)
+fetch('/api/sales/held').then(r => r.json()).then(rows => updateHeldBadge(Array.isArray(rows) ? rows.length : 0)).catch(() => {});
+{% endif %}
+</script>
+{% endblock %}

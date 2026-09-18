@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-circle' %}
+{% block title %}المتصلون{% endblock %}
+{% block page_title %}المتصلون{% endblock %}
+{% block breadcrumb %}آخر ظهور وحالة الاتصال{% endblock %}
+{% block content %}
+<div class="card"><div class="card-body">
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">
+        يُعتبر المستخدم <strong>متصلاً</strong> إذا كان نشاطه خلال آخر 5 دقائق. يُحدَّث آخر ظهور تلقائياً أثناء التنقل في النظام.
+    </p>
+    <div class="table-container"><table>
+        <thead><tr>
+            <th>المستخدم</th>
+            <th>الاسم</th>
+            <th>الدور</th>
+            <th>الحالة</th>
+            <th>IP الجهاز</th>
+            <th>اسم/وصف الجهاز</th>
+            <th>آخر ظهور</th>
+            <th>إجراء</th>
+        </tr></thead>
+        <tbody>
+            {% for u in users_list %}
+            <tr>
+                <td style="font-weight:600;font-family:monospace;">{{ u.username }}</td>
+                <td>{{ u.full_name or '—' }}</td>
+                <td>
+                    {% if u.role == 'developer' %}<span class="badge badge-purple">مطوّر</span>
+                    {% elif u.role == 'admin' %}<span class="badge badge-danger">مدير</span>
+                    {% elif u.role == 'manager' %}<span class="badge badge-warning">مشرف</span>
+                    {% else %}<span class="badge badge-info">مستخدم</span>{% endif %}
+                </td>
+                <td>
+                    {% if u.last_seen and u.last_seen >= online_before %}
+                    <span class="badge badge-success"><i class="fas fa-circle" style="font-size:8px;"></i> متصل</span>
+                    {% else %}
+                    <span class="badge badge-secondary">غير متصل</span>
+                    {% endif %}
+                </td>
+                <td style="font-family:monospace;font-size:12px;color:var(--info);">
+                    {{ u.last_ip or '—' }}
+                </td>
+                <td style="font-size:12px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ u.last_user_agent or '' }}">
+                    {% if u.last_user_agent %}
+                        {% set ua = u.last_user_agent %}
+                        {% if 'iPhone' in ua %}📱 iPhone
+                        {% elif 'Android' in ua and 'Mobile' in ua %}📱 Android Mobile
+                        {% elif 'Android' in ua %}📱 Android Tablet
+                        {% elif 'iPad' in ua %}📱 iPad
+                        {% elif 'Windows' in ua %}🖥️ Windows
+                        {% elif 'Macintosh' in ua or 'Mac OS' in ua %}🖥️ Mac
+                        {% elif 'Linux' in ua %}🖥️ Linux
+                        {% else %}{{ ua[:40] }}{% endif %}
+                        —
+                        {% if 'Chrome' in ua and 'Edg' not in ua and 'OPR' not in ua %}Chrome
+                        {% elif 'Edg' in ua %}Edge
+                        {% elif 'Firefox' in ua %}Firefox
+                        {% elif 'Safari' in ua and 'Chrome' not in ua %}Safari
+                        {% elif 'OPR' in ua or 'Opera' in ua %}Opera
+                        {% else %}متصفح آخر{% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td style="color:var(--text-muted);font-size:12.5px;">
+                    {% if u.last_seen %}{{ u.last_seen.strftime('%Y/%m/%d %H:%M') }}{% else %}لم يُسجَّل بعد{% endif %}
+                </td>
+                <td>
+                    {% if u.id == current_user.id %}
+                    <span class="badge badge-info">الحساب الحالي</span>
+                    {% else %}
+                        {% set ROLE_RANK = {'developer': 4, 'admin': 3, 'manager': 2, 'user': 1} %}
+                        {% set my_rank = ROLE_RANK.get(current_user.role, 1) %}
+                        {% set target_rank = ROLE_RANK.get(u.role, 1) %}
+                        {% if target_rank < my_rank %}
+                        <form method="post" action="{{ url_for('connected_users_force_logout', user_id=u.id) }}" style="display:inline;" onsubmit="return confirm('تأكيد إخراج المستخدم {{ u.username }}؟');">
+                            <button type="submit" class="btn btn-outline btn-xs" title="إخراج المستخدم"><i class="fas fa-sign-out-alt"></i> إخراج</button>
+                        </form>
+                        {% else %}
+                        <span class="badge badge-secondary" title="لا صلاحية">—</span>
+                        {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table></div>
+</div></div>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-fingerprint' %}
+{% block title %}إدارة الترخيص{% endblock %}
+{% block page_title %}السريالات والترخيص{% endblock %}
+{% block breadcrumb %}مطوّر النظام — توليد السريالات{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+    <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-plus-circle"></i> إنشاء سريالات</div></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('license_admin_generate') }}">
+                <div class="form-group">
+                    <label class="form-label">نوع المدة</label>
+                    <select name="plan" class="form-control">
+                        <option value="six_months">6 شهور</option>
+                        <option value="one_year" selected>سنة</option>
+                        <option value="permanent">دائم</option>
+                        <option value="custom">تحديد الأيام يدوياً</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">عدد الأيام (عند اختيار يدوي)</label>
+                    <input type="number" name="custom_days" class="form-control" value="30" min="1" max="3650">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">عدد السريالات</label>
+                    <input type="number" name="count" class="form-control" value="5" min="1" max="500">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">ملاحظة (اختياري)</label>
+                    <input type="text" name="note" class="form-control" placeholder="مثلاً: عميل فلان">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fas fa-magic"></i> توليد</button>
+            </form>
+            <p style="font-size:11px;color:var(--text-muted);margin-top:14px;line-height:1.5;">
+                السريالات تُحفظ في <code>instance/license_pool.db</code>. عند استخدام أحدها يُنقل السجل إلى <code>instance/license_used.db</code> ويُحدَّث ترخيص التثبيت في قاعدة ERP الرئيسية.
+            </p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-database"></i> قاعدة السريالات الجاهزة</div></div>
+        <div class="table-container" style="max-height:420px;overflow-y:auto;">
+            <table>
+                <thead><tr><th>السريال</th><th>الخطة</th><th>الأيام</th><th>تاريخ الإنشاء</th><th>ملاحظة</th></tr></thead>
+                <tbody>
+                    {% for r in pool %}
+                    <tr>
+                        <td style="font-family:monospace;font-size:12px;">{{ r.code }}</td>
+                        <td><span class="badge badge-info">{{ r.plan }}</span></td>
+                        <td style="font-size:12px;font-weight:700;color:var(--accent);">
+                            {% if r.plan == 'permanent' %}دائم
+                            {% elif r.plan == 'one_year' %}365 يوم
+                            {% elif r.plan == 'six_months' %}180 يوم
+                            {% elif r.plan == 'custom' and r.custom_days %}{{ r.custom_days }} يوم
+                            {% else %}—{% endif %}
+                        </td>
+                        <td style="font-size:12px;color:var(--text-muted);">{{ r.created_at.strftime('%Y-%m-%d') if r.created_at else '—' }}</td>
+                        <td style="font-size:12px;">{{ r.note or '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4"><div class="empty-state" style="padding:20px;"><h3>لا توجد سريالات في المخزن</h3></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top:20px;">
+    <div class="card-header"><div class="card-title"><i class="fas fa-history"></i> السريالات المُستَخدمة</div></div>
+    <div class="table-container">
+        <table>
+            <thead><tr><th>آخر أرقام</th><th>الخطة</th><th>تاريخ التفعيل</th><th>ينتهي</th></tr></thead>
+            <tbody>
+                {% for u in used %}
+                <tr>
+                    <td style="font-family:monospace;">…{{ u.code_hint }}</td>
+                    <td>{{ u.plan }}</td>
+                    <td style="font-size:12px;color:var(--text-muted);">{{ u.activated_at.strftime('%Y-%m-%d %H:%M') if u.activated_at else '—' }}</td>
+                    <td>{% if u.expires_at %}{{ u.expires_at.strftime('%Y-%m-%d') }}{% else %}دائم{% endif %}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4"><div class="empty-state" style="padding:20px;">لا توجد تفعيلات بعد</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card" style="margin-top:20px;">
+    <div class="card-header"><div class="card-title"><i class="fas fa-comment-alt"></i> رسالة للعميل عند انتهاء الاشتراك</div></div>
+    <div class="card-body">
+        <p style="font-size:12px;color:var(--text-muted);line-height:1.55;margin-bottom:12px;">
+            تُعرض هذه الرسالة للمستخدمين عندما لا يكون الترخيص صالحاً أو انتهى الاشتراك (ما عدا حساب المطوّر).
+        </p>
+        <form method="POST" action="{{ url_for('license_admin_save_message') }}">
+            <div class="form-group">
+                <label class="form-label">نص الرسالة</label>
+                <textarea name="license_expiry_message" class="form-control" rows="4" maxlength="4000" placeholder="مثال: تواصل معنا لتجديد الاشتراك…">{{ license_expiry_message_text or '' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ الرسالة</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

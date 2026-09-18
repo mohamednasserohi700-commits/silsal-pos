@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-exclamation-triangle' %}
+{% block title %}تقرير نقص المخزون{% endblock %}
+{% block page_title %}تنبيه نقص المخزون{% endblock %}
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-outline"><i class="fas fa-print"></i> طباعة</button>
+<a href="{{ url_for('reports') }}" class="btn btn-outline"><i class="fas fa-arrow-right"></i> رجوع</a>
+{% endblock %}
+{% block content %}
+{% if low_items %}
+<div class="alert alert-warning" style="margin-bottom:20px;">
+    <i class="fas fa-exclamation-triangle"></i>
+    يوجد <strong>{{ low_items|length }}</strong> صنف وصل للحد الأدنى أو تجاوزه — يجب إعادة الطلب فوراً
+</div>
+{% endif %}
+<div class="card"><div class="table-container"><table>
+    <thead><tr>
+        <th>الصنف</th><th>الكود</th><th>المخزن</th><th>الرصيد الحالي</th><th>الحد الأدنى</th><th>النقص</th><th>الحالة</th>
+    </tr></thead>
+    <tbody>
+        {% for stock, product, warehouse in low_items %}
+        <tr>
+            <td style="font-weight:600;">{{ product.name }}</td>
+            <td style="font-family:monospace;color:var(--text-muted);">{{ product.code }}</td>
+            <td>{{ warehouse.name }}</td>
+            <td style="font-weight:800;color:{% if stock.quantity <= 0 %}var(--danger){% else %}var(--warning){% endif %};">
+                {{ stock.quantity }}
+            </td>
+            <td style="color:var(--text-muted);">{{ product.min_stock }}</td>
+            <td style="font-weight:700;color:var(--danger);">
+                {{ [0, product.min_stock - stock.quantity] | max }}
+            </td>
+            <td>
+                {% if stock.quantity <= 0 %}
+                <span class="badge badge-danger pulse"><i class="fas fa-times-circle"></i> نفذ تماماً</span>
+                {% else %}
+                <span class="badge badge-warning pulse"><i class="fas fa-exclamation-circle"></i> تحت الحد</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">
+            <div class="empty-state">
+                <i class="fas fa-check-circle" style="color:var(--success);"></i>
+                <h3 style="color:var(--success);">ممتاز! جميع الأصناف فوق الحد الأدنى</h3>
+            </div>
+        </td></tr>
+        {% endfor %}
+    </tbody>
+</table></div></div>
+{% endblock %}

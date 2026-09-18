@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-boxes' %}
+{% block title %}الجرد والمخزون{% endblock %}
+{% block page_title %}الجرد والمخزون{% endblock %}
+{% block breadcrumb %}رصيد الأصناف في المخازن{% endblock %}
+
+{% block content %}
+{% set inv_stock_line_delete = can('stock_line_delete') and can('record_delete') %}
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-body" style="padding:14px 20px;">
+        <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+            <div style="flex:1;min-width:200px;">
+                <label class="form-label">المخزن</label>
+                <select name="warehouse_id" class="form-control" onchange="this.form.submit()">
+                    <option value="">— جميع المخازن —</option>
+                    {% for wh in warehouses %}
+                    <option value="{{ wh.id }}" {{ 'selected' if selected_warehouse == wh.id|string }}>{{ wh.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="flex:2;min-width:200px;">
+                <label class="form-label">بحث عن صنف</label>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="اسم الصنف...">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> تصفية</button>
+            <a href="{{ url_for('inventory') }}" class="btn btn-outline">إعادة تعيين</a>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title"><i class="fas fa-warehouse"></i> رصيد المخزون</div>
+        <span style="font-size:13px;color:var(--text-muted);"><span id="invCount">{{ stocks|length }}</span> صنف</span>
+        <span id="invLiveHint" style="font-size:11px;color:var(--success);display:none;margin-right:8px;"><i class="fas fa-sync"></i> تم التحديث</span>
+    </div>
+    <div class="table-container">
+        <table id="inventoryTable"
+            data-stock-delete="{% if inv_stock_line_delete %}1{% else %}0{% endif %}"
+            data-delete-url="{{ url_for('delete_inventory_stock_line') }}">
+            <thead><tr>
+                <th>كود الصنف</th><th>اسم الصنف</th><th>التصنيف</th>
+                <th>المخزن</th><th>الفرع</th>
+                <th>الرصيد</th><th>الوحدة</th><th>الحالة</th>
+                {% if inv_stock_line_delete %}<th style="width:52px;"></th>{% endif %}
+            </tr></thead>
+            <tbody id="inventoryTableBody">
+                {% for stock, product, warehouse in stocks %}
+                <tr>
+                    <td style="font-family:monospace;color:var(--text-muted);">{{ product.code }}</td>
+                    <td style="font-weight:600;">{{ product.name }}</td>
+                    <td>{{ product.category.name if product.category else '—' }}</td>
+                    <td>{{ warehouse.name }}</td>
+                    <td style="color:var(--text-muted);">{{ warehouse.branch.name if warehouse.branch else '—' }}</td>
+                    <td style="font-weight:800;font-size:16px;
+                        color:{% if stock.quantity <= 0 %}var(--danger){% elif stock.quantity <= product.min_stock and product.min_stock > 0 %}var(--warning){% else %}var(--success){% endif %};">
+                        {{ stock.quantity }}
+                    </td>
+                    <td>{{ product.unit }}</td>
+                    <td>
+                        {% if stock.quantity <= 0 %}
+                        <span class="badge badge-danger">نفذ</span>
+                        {% elif stock.quantity <= product.min_stock and product.min_stock > 0 %}
+                        <span class="badge badge-warning pulse">تحت الحد</span>
+                        {% else %}
+                        <span class="badge badge-success">متوفر</span>
+                        {% endif %}
+                    </td>
+                    {% if inv_stock_line_delete %}
+                    <td>
+                        <form method="POST" action="{{ url_for('delete_inventory_stock_line') }}" style="display:inline;" onsubmit="return confirm('حذف سطر هذا الصنف من المخزن فقط؟');">
+                            <input type="hidden" name="product_id" value="{{ product.id }}">
+                            <input type="hidden" name="warehouse_id" value="{{ warehouse.id }}">
+                            <button type="submit" class="btn btn-danger btn-xs" title="حذف السطر"><i class="fas fa-unlink"></i></button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr><td colspan="{% if inv_stock_line_delete %}9{% else %}8{% endif %}">
+                    <div class="empty-state">
+                        <i class="fas fa-boxes"></i>
+                        <h3>لا توجد بيانات مخزون</h3>
+                        <p style="font-size:13px;margin-top:8px;">أضف أصنافاً أو أنشئ مخازن أولاً</p>
+                    </div>
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function(){
+    function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
+    function badge(st){
+        if(st==='out') return '<span class="badge badge-danger">نفذ</span>';
+        if(st==='low') return '<span class="badge badge-warning pulse">تحت الحد</span>';
+        return '<span class="badge badge-success">متوفر</span>';
+    }
+    function qtyColor(st){
+        if(st==='out') return 'var(--danger)';
+        if(st==='low') return 'var(--warning)';
+        return 'var(--success)';
+    }
+    async function pull(){
+        try{
+            var tbl = document.getElementById('inventoryTable');
+            var delOn = tbl && tbl.getAttribute('data-stock-delete') === '1';
+            var delUrl = tbl ? tbl.getAttribute('data-delete-url') : '';
+            var q = new URLSearchParams(window.location.search);
+            var r = await fetch('/api/inventory/stocks?' + q.toString());
+            if(!r.ok) return;
+            var d = await r.json();
+            var tb = document.getElementById('inventoryTableBody');
+            if(!tb) return;
+            var cnt = document.getElementById('invCount');
+            if(cnt) cnt.textContent = d.count;
+            var cs = delOn ? '9' : '8';
+            if(!d.rows.length){
+                tb.innerHTML = '<tr><td colspan="'+cs+'"><div class="empty-state"><i class="fas fa-boxes"></i><h3>لا توجد بيانات مخزون</h3></div></td></tr>';
+            } else {
+                tb.innerHTML = d.rows.map(function(row){
+                    var delCell = '';
+                    if(delOn && delUrl) {
+                        delCell = '<td><form method="POST" action="'+esc(delUrl)+'" style="display:inline;" onsubmit="return confirm(\'حذف سطر هذا الصنف من المخزن؟\');">'+
+                            '<input type="hidden" name="product_id" value="'+esc(row.product_id)+'">'+
+                            '<input type="hidden" name="warehouse_id" value="'+esc(row.warehouse_id)+'">'+
+                            '<button type="submit" class="btn btn-danger btn-xs"><i class="fas fa-unlink"></i></button></form></td>';
+                    }
+                    return '<tr><td style="font-family:monospace;color:var(--text-muted);">'+esc(row.code)+'</td>'+
+                        '<td style="font-weight:600;">'+esc(row.name)+'</td>'+
+                        '<td>'+esc(row.category)+'</td><td>'+esc(row.warehouse)+'</td>'+
+                        '<td style="color:var(--text-muted);">'+esc(row.branch)+'</td>'+
+                        '<td style="font-weight:800;font-size:16px;color:'+qtyColor(row.status)+';">'+esc(row.quantity)+'</td>'+
+                        '<td>'+esc(row.unit)+'</td><td>'+badge(row.status)+'</td>'+delCell+'</tr>';
+                }).join('');
+            }
+            var h = document.getElementById('invLiveHint');
+            if(h){ h.style.display=''; setTimeout(function(){ h.style.display='none'; }, 1400); }
+        }catch(e){}
+    }
+    setInterval(pull, 18000);
+})();
+</script>
+{% endblock %}

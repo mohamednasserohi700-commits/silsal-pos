@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% set block_icon = 'fas fa-database' %}
+{% block title %}قاعدة البيانات{% endblock %}
+{% block page_title %}استيراد وتصدير ونسخ احتياطي{% endblock %}
+{% block breadcrumb %}إعدادات متقدمة — احذر من فقدان البيانات{% endblock %}
+
+{% block content %}
+<div class="alert alert-warning" style="margin-bottom:18px;">
+    <i class="fas fa-exclamation-triangle"></i>
+    العمليات هنا حساسة. يُنصح بإيقاف باقي المستخدمين مؤقتاً عند الاستيراد أو إعادة الضبط. تغيير مسار الملف يتطلب <strong>إعادة تشغيل السيرفر</strong>.
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;">
+    <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-info-circle"></i> الوضع الحالي</div></div>
+        <div class="card-body" style="font-size:13px;line-height:1.7;">
+            {% if is_sqlite %}
+            <p><strong>ملف SQLite النشط:</strong><br><code style="word-break:break-all;font-size:11px;">{{ main_sqlite }}</code></p>
+            {% if custom_path %}
+            <p style="color:var(--text-muted);">مسار مُعرَّف في <code>instance/database_path.json</code>:<br><code style="word-break:break-all;">{{ custom_path }}</code></p>
+            {% endif %}
+            {% elif is_postgres %}
+            <p><strong>نوع قاعدة البيانات:</strong> <span class="badge badge-info">PostgreSQL</span></p>
+            <p style="font-size:12px;color:var(--text-muted);">النسخ الاحتياطي يعمل عبر <code>pg_dump</code> — يجب أن تكون مثبتة على السيرفر.</p>
+            {% else %}
+            <p>نوع قاعدة البيانات غير معروف.</p>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-folder-open"></i> مسار قاعدة البيانات (شبكة / مشترك)</div></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('database_save_path') }}">
+                <div class="form-group">
+                    <label class="form-label">مسار ملف .db كامل (مثال: Z:\Shared\erp.db)</label>
+                    <input type="text" name="sqlite_path" class="form-control" value="{{ custom_path }}" placeholder="اتركه فارغاً لإلغاء المسار المخصص">
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ المسار</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px;">
+    <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-download"></i> تصدير ونسخ</div></div>
+        <div class="card-body">
+            <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+                يُنشئ نسخة في المجلد المحدد أو <code>instance/backups/</code> تلقائياً.
+                النسخ التلقائي اليومي يدعم <strong>SQLite وPostgreSQL</strong>.
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                {% if is_sqlite %}
+                <a href="{{ url_for('database_export') }}" class="btn btn-success"><i class="fas fa-file-download"></i> تنزيل نسخة .db</a>
+                {% endif %}
+                <form method="POST" action="{{ url_for('database_backup_now') }}" style="display:inline;">
+                    <button type="submit" class="btn btn-outline"><i class="fas fa-copy"></i> نسخ احتياطي الآن</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-file-upload"></i> استيراد ملف قاعدة</div></div>
+        <div class="card-body">
+            {% if is_sqlite %}
+            <form method="POST" action="{{ url_for('database_import') }}" enctype="multipart/form-data">
+                <div class="form-group">
+                    <input type="file" name="file" class="form-control" accept=".db" required>
+                </div>
+                <button type="submit" class="btn btn-danger" onclick="return confirm('سيتم استبدال قاعدة البيانات الحالية بعد نسخ احتياطي. متابعة؟');"><i class="fas fa-upload"></i> استيراد واستبدال</button>
+            </form>
+            {% else %}
+            <p class="text-muted" style="font-size:13px;">غير متاح لهذا النوع من الاتصال.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if current_user.role in ('admin', 'developer') %}
+<div class="card" style="margin-top:18px;border-color:rgba(20,184,166,.35);">
+    <div class="card-header"><div class="card-title" style="color:#0d9488;"><i class="fas fa-wrench"></i> فحص وإصلاح الأداء</div></div>
+    <div class="card-body">
+        <p style="font-size:13px;line-height:1.7;margin-bottom:14px;color:var(--text-muted);">
+            يضيف فهارس بحث مفقودة، يحدّث إحصائيات قاعدة البيانات، وينظف المساحة الفارغة الناتجة عن عمليات حذف قديمة.
+            <strong style="color:var(--text-primary, inherit);">آمن 100% — لا يحذف ولا يعدّل أي بيانات موجودة</strong>، ويأخذ نسخة احتياطية تلقائية قبل البدء.
+            يُستخدم لو حسّيت إن النظام بقى أبطأ مع كبر حجم البيانات بمرور الوقت.
+        </p>
+        <form method="POST" action="{{ url_for('database_optimize') }}" onsubmit="return confirm('هيتم أخذ نسخة احتياطية أولاً ثم فحص وإصلاح قاعدة البيانات. قد تستغرق العملية دقيقة أو أكثر حسب حجم البيانات. متابعة؟');">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-wrench"></i> فحص وإصلاح الآن</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="card" style="margin-top:18px;border-color:rgba(239,68,68,.35);">
+    <div class="card-header"><div class="card-title" style="color:var(--danger);"><i class="fas fa-bomb"></i> إعادة ضبط محاسبي (خطير)</div></div>
+    <div class="card-body">
+        <p style="font-size:13px;line-height:1.6;margin-bottom:14px;">
+            يمسح: المبيعات، المشتريات، المرتجعات، التحويلات، المصاريف، دفعات العملاء والموردين، ويُصفّر أرصدة العملاء والموردين وجميع كميات المخزون.
+            <strong>لا يمس:</strong> المستخدمون، الأصناف، العملاء، الموردون، الموظفون، الفروع، المخازن، التصنيفات، الإعدادات.
+        </p>
+        <form method="POST" action="{{ url_for('database_reset_accounting') }}" onsubmit="return confirm('تأكيد نهائي: سيتم فقدان كل العمليات المحاسبية؟');">
+            <div class="form-group">
+                <label class="form-label">اكتب RESET للتأكيد</label>
+                <input type="text" name="confirm" class="form-control" placeholder="RESET" autocomplete="off">
+            </div>
+            <button type="submit" class="btn btn-danger"><i class="fas fa-eraser"></i> تنفيذ إعادة الضبط</button>
+        </form>
+    </div>
+</div>
+
+<div class="card" style="margin-top:18px;">
+    <div class="card-header"><div class="card-title"><i class="fas fa-clock"></i> إعدادات النسخ الاحتياطي التلقائي</div></div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('database_backup_settings') }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-clock" style="color:var(--accent);margin-left:6px;"></i> وقت النسخ اليومي</label>
+                    <input type="time" name="backup_daily_time" class="form-control" value="{{ backup_daily_time }}" placeholder="02:00">
+                    <small style="color:var(--text-muted);font-size:11px;display:block;margin-top:4px;">يعمل تلقائياً كل يوم في هذا الوقت بعد تشغيل السيرفر</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-folder-open" style="color:var(--accent);margin-left:6px;"></i> مجلد حفظ النسخ</label>
+                    <input type="text" name="backup_custom_dir" class="form-control" value="{{ backup_custom_dir }}" placeholder="اتركه فارغاً للمجلد الافتراضي instance/backups">
+                    <small style="color:var(--text-muted);font-size:11px;display:block;margin-top:4px;">مثال: D:\Backups أو /home/user/backups</small>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ إعدادات النسخ التلقائي</button>
+        </form>
+    </div>
+</div>
+
+{% if backup_files %}
+<div class="card" style="margin-top:18px;">
+    <div class="card-header"><div class="card-title"><i class="fas fa-history"></i> آخر النسخ في instance/backups</div></div>
+    <div class="table-container"><table>
+        <thead><tr><th>الملف</th><th>الحجم</th></tr></thead>
+        <tbody>
+            {% for b in backup_files %}
+            <tr>
+                <td style="font-family:monospace;font-size:12px;">{{ b.name }}</td>
+                <td>{{ (b.size / 1024)|round(1) }} KB</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table></div>
+</div>
+{% endif %}
+{% endblock %}
