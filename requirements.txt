@@ -1,6 +1,6 @@
 # ============================================================
-# ProERP — Python Requirements (مثبّتة بإصدارات محددة)
-# Python 3.10–3.14 ✔  (مع 3.14: ثبّت SQLAlchemy 2.0.49+ لتفادي AssertionError في TypingOnly)
+# ProERP — Python Requirements
+# مُختبر على Python 3.12 / 3.13
 # ============================================================
 
 # Core Framework
@@ -21,10 +21,14 @@ WTForms==3.2.1
 # Environment variables
 python-dotenv==1.2.2
 
-# Production WSGI server (على Linux/macOS؛ على Windows اختياري)
+# Production WSGI server
 gunicorn==25.3.0
 
 # QR codes — بطاقات حضور الموظفين
 qrcode==8.2
 
-# PostgreSQL: لا يُثبّت هنا — راجع requirements-postgres.txt (قد يفشل على Python 3.14 بدون عجلة جاهزة)
+# Excel import/export (الكود بيستوردها اختياريًا — من غيرها الاستيراد/التصدير بيتعطل)
+openpyxl==3.1.5
+
+# PostgreSQL driver — مطلوب على Railway لأن DATABASE_URL بتبقى postgresql://
+psycopg2-binary==2.9.10
