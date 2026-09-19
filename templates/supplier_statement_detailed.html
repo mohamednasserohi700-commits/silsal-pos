@@ -3,6 +3,7 @@
 {% block title %}كشف حساب تفصيلي - {{ supplier.name }}{% endblock %}
 {% block page_title %}كشف حساب تفصيلي: {{ supplier.name }}{% endblock %}
 {% block topbar_actions %}
+<a href="{{ url_for('excel_export.export_supplier_statement_detailed', id=supplier.id, date_from=date_from, date_to=date_to) }}" class="btn btn-success"><i class="fas fa-file-excel"></i> تصدير إكسيل</a>
 <a href="{{ url_for('supplier_statement_detailed_print', id=supplier.id, date_from=date_from, date_to=date_to) }}" target="_blank" class="btn btn-outline"><i class="fas fa-print"></i> طباعة</a>
 <a href="{{ url_for('supplier_statement', id=supplier.id) }}" class="btn btn-outline"><i class="fas fa-file-alt"></i> كشف الحساب المالي</a>
 <a href="{{ url_for('suppliers') }}" class="btn btn-outline"><i class="fas fa-arrow-right"></i> رجوع</a>

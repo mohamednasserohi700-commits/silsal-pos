@@ -49,12 +49,10 @@
             <div class="form-group">
                 <label class="form-label">الصلاحية *</label>
                 <select name="role" class="form-control" required id="addUserRole">
-                    <option value="user">مستخدم عادي</option>
-                    <option value="manager">مشرف</option>
-                    <option value="admin">مدير النظام</option>
-                    {% if current_user.role == 'developer' %}
-                    <option value="developer">مطوّر النظام</option>
-                    {% endif %}
+                    {% set role_labels = {'user': 'مستخدم عادي', 'manager': 'مشرف', 'admin': 'مدير النظام', 'developer': 'مطوّر النظام'} %}
+                    {% for r in assignable_roles %}
+                    <option value="{{ r }}">{{ role_labels.get(r, r) }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="form-group">

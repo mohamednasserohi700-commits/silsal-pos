@@ -2,7 +2,7 @@
 {% set block_icon = 'fas fa-users' %}
 {% block title %}العملاء{% endblock %}
 {% block page_title %}إدارة العملاء{% endblock %}
-{% block topbar_actions %}<a href="{{ url_for('add_customer') }}" class="btn btn-primary"><i class="fas fa-plus"></i> إضافة عميل</a> {% if current_user.role == 'developer' %}<a href="{{ url_for('import_customers') }}" class="btn btn-outline" title="أداة للمطوّر فقط"><i class="fas fa-file-excel"></i> استيراد من إكسيل</a>{% endif %}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('excel_export.export_customers', q=q) }}" class="btn btn-success"><i class="fas fa-file-excel"></i> تصدير إكسيل</a> <a href="{{ url_for('add_customer') }}" class="btn btn-primary"><i class="fas fa-plus"></i> إضافة عميل</a> {% if current_user.role == 'developer' %}<a href="{{ url_for('import_customers') }}" class="btn btn-outline" title="أداة للمطوّر فقط"><i class="fas fa-file-excel"></i> استيراد من إكسيل</a>{% endif %}{% endblock %}
 {% block content %}
 <div class="card" style="margin-bottom:16px;"><div class="card-body" style="padding:14px 20px;">
     <form method="GET"><div class="search-box" style="max-width:400px;"><i class="fas fa-search"></i><input type="text" name="q" value="{{ q }}" class="form-control" placeholder="بحث..."></div></form>

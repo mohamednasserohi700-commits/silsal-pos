@@ -24,12 +24,11 @@
             <div class="form-group">
                 <label class="form-label">الدور *</label>
                 <select name="role" class="form-control" required>
-                    <option value="user" {{ 'selected' if u.role=='user' }}>مستخدم عادي</option>
-                    <option value="manager" {{ 'selected' if u.role=='manager' }}>مشرف</option>
-                    <option value="admin" {{ 'selected' if u.role=='admin' }}>مدير النظام</option>
-                    {% if current_user.role == 'developer' %}
-                    <option value="developer" {{ 'selected' if u.role=='developer' }}>مطوّر النظام (كامل الصلاحيات)</option>
-                    {% endif %}
+                    {% set role_labels = {'user': 'مستخدم عادي', 'manager': 'مشرف', 'admin': 'مدير النظام', 'developer': 'مطوّر النظام (كامل الصلاحيات)'} %}
+                    {# دور المستخدم الحالي يظهر دائماً كخيار متاح (حتى إن تجاوز صلاحية المُحرِّر) حتى لا يُغيَّر بالخطأ عند الحفظ دون قصد؛ الخادم يمنع تغييره إلى دور آخر أعلى من رتبة المُحرِّر #}
+                    {% for r in (assignable_roles + [u.role]) | unique %}
+                    <option value="{{ r }}" {{ 'selected' if u.role==r }}>{{ role_labels.get(r, r) }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="form-group">
@@ -74,6 +73,7 @@
     var roleSel = document.querySelector('select[name="role"]');
     if (!roleSel) return;
     function apply() {
+        if (!Object.prototype.hasOwnProperty.call(MAP, roleSel.value)) return; // لا نملك افتراضيات هذا الدور (خارج صلاحياتك) — لا نلمس التحديدات الحالية
         var keys = MAP[roleSel.value] || [];
         document.querySelectorAll('input[name="perm"]').forEach(function (cb) {
             cb.checked = keys.indexOf(cb.value) >= 0;
