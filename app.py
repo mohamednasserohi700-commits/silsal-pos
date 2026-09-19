@@ -536,6 +536,7 @@ PERMISSION_KEYS = [
     ('purchases', 'المشتريات'),
     ('returns', 'المرتجعات'),
     ('inventory', 'المخزون والجرد'),
+    ('inventory_memos', 'مذكرات المخزون (إذن إخراج / استلام إنتاج)'),
     ('transfers', 'تحويلات المخازن'),
     ('transfer_approve', 'الموافقة على تحويلات المخازن'),
     ('adjust_stock', 'تسوية المخزون'),
@@ -632,7 +633,7 @@ def user_can(user, perm: str) -> bool:
         return True
     if user.role == 'user':
         return perm in {
-            'dashboard', 'sales', 'purchases', 'returns', 'inventory', 'transfers',
+            'dashboard', 'sales', 'purchases', 'returns', 'inventory', 'inventory_memos', 'transfers',
             'customers', 'suppliers', 'expenses', 'products', 'product_add', 'categories', 'reports',
         }
     if user.role in ('hr_manager', 'hr_officer', 'payroll_officer', 'department_manager', 'employee'):
@@ -675,7 +676,7 @@ def default_role_permission_set(role: str) -> set:
         return keys_all - MANAGER_DEFAULT_DENIED - DEVELOPER_ONLY_PERMS
     if role == 'user':
         return {
-            'dashboard', 'sales', 'purchases', 'returns', 'inventory', 'transfers',
+            'dashboard', 'sales', 'purchases', 'returns', 'inventory', 'inventory_memos', 'transfers',
             'customers', 'suppliers', 'expenses', 'products', 'product_add', 'categories', 'reports',
         }
     if role in ('hr_manager', 'hr_officer', 'payroll_officer', 'department_manager', 'employee'):
@@ -692,14 +693,20 @@ def effective_selected_permissions_for_form(user, keys_visible: frozenset):
     return sorted(str(k) for k in base if k in keys_visible)
 
 
-def _permissions_form_to_stored(perms_list, role: str, keys_visible: frozenset):
-    """تحويل ما أُرسل من النموذج إلى JSON أو None إن طابق افتراضيات الدور."""
-    if not perms_list:
+def _permissions_form_to_stored(perms_list, role: str, keys_visible: frozenset, always_keep=frozenset()):
+    """تحويل ما أُرسل من النموذج إلى JSON أو None إن طابق افتراضيات الدور.
+    always_keep: صلاحيات محفوظة مسبقاً للمستخدم لا يملك المُحرِّر الحالي رؤيتها في
+    النموذج (خارج keys_visible) — تُحفظ كما هي دون المرور بفلترة keys_visible حتى
+    لا تُفقَد بصمت بسبب فتح شاشة التعديل من طرف مُحرِّر أقل صلاحية."""
+    always_keep = set(always_keep)
+    if not perms_list and not always_keep:
         return None
-    s = set(perms_list) & keys_visible
+    s = (set(perms_list) & keys_visible) | always_keep
+    if not s:
+        return None
     if 'dashboard' not in s:
         s.add('dashboard')
-    default = {k for k in default_role_permission_set(role) if k in keys_visible}
+    default = {k for k in default_role_permission_set(role) if k in keys_visible} | always_keep
     if s == default:
         return None
     return sorted(s)
@@ -1019,7 +1026,7 @@ def path_required_permission(path: str):
         ('/returns/sale', 'returns'),
         ('/returns/purchase', 'returns'),
         ('/inventory/adjust', 'adjust_stock'),
-        ('/inventory/memos', 'inventory'),
+        ('/inventory/memos', 'inventory_memos'),
         ('/transfers', 'transfers'),
         ('/inventory', 'inventory'),
         ('/customers', 'customers'),
@@ -1070,19 +1077,41 @@ BACKUPS_DIR = os.path.join(_INSTANCE_DIR, 'backups')
 os.makedirs(BACKUPS_DIR, exist_ok=True)
 
 
+# ترتيب الأدوار من الأدنى للأعلى — يُستخدم لمنع أي مستخدم من تعيين/تعديل دور
+# أو صلاحية تتجاوز رتبته الخاصة (نفس المنطق المستخدم في إخراج المتصلين).
+ROLE_RANK = {'developer': 4, 'admin': 3, 'manager': 2, 'user': 1}
+
+
+def assignable_roles_for(viewer):
+    """الأدوار التي يجوز لهذا المُحرِّر تعيينها لغيره عند إضافة/تعديل مستخدم.
+    مانع أساسي لمنع مستخدم أدنى (مثل مشرف) من إنشاء أو ترقية حساب لدور أعلى منه
+    (مدير نظام أو مطوّر)."""
+    r = getattr(viewer, 'role', None) if viewer and getattr(viewer, 'is_authenticated', False) else None
+    if r == 'developer':
+        return ['user', 'manager', 'admin', 'developer']
+    if r == 'admin':
+        return ['user', 'manager', 'admin']
+    if r == 'manager':
+        return ['user']
+    return []
+
+
 def permission_keys_for_editor(viewer):
+    """مفاتيح الصلاحيات التي يجوز لهذا المُحرِّر منحها لغيره.
+    القاعدة: لا يجوز لأي مستخدم أن يمنح صلاحية هو نفسه لا يملكها فعلياً — وإلا
+    يصبح ممكناً لمشرف مُنِح صلاحية «المستخدمون» فقط أن يمنح نفسه أو غيره صلاحيات
+    أخطر (قاعدة البيانات، النسخ الاحتياطي، حذف مستخدمين...) لم يُصرَّح لها بها."""
     if not viewer or not getattr(viewer, 'is_authenticated', False):
         return [x for x in PERMISSION_KEYS if x[0] not in DEVELOPER_ONLY_PERMS]
     if getattr(viewer, 'role', None) == 'developer':
         return list(PERMISSION_KEYS)
-    return [x for x in PERMISSION_KEYS if x[0] not in DEVELOPER_ONLY_PERMS]
+    own = {k for k, _ in PERMISSION_KEYS if user_can(viewer, k)}
+    return [x for x in PERMISSION_KEYS if x[0] not in DEVELOPER_ONLY_PERMS and x[0] in own]
 
 
 def default_permissions_json_for_editor(viewer):
     keys_visible = frozenset(k for k, _ in permission_keys_for_editor(viewer))
-    roles = ['user', 'manager', 'admin']
-    if getattr(viewer, 'role', None) == 'developer':
-        roles.append('developer')
+    roles = assignable_roles_for(viewer) or ['user']
     return {r: sorted(default_role_permission_set(r) & keys_visible) for r in roles}
 
 
@@ -4818,6 +4847,7 @@ def users():
     branches = Branch.query.filter_by(is_active=True).all()
     return render_template(
         'users.html', users=users, branches=branches,
+        assignable_roles=assignable_roles_for(current_user),
         default_perms_by_role=default_permissions_json_for_editor(current_user))
 
 @app.route('/settings/users/add', methods=['POST'])
@@ -4828,8 +4858,8 @@ def add_user():
     if not role:
         flash('يرجى اختيار الدور الوظيفي', 'error')
         return redirect(url_for('users'))
-    if role == 'developer' and current_user.role != 'developer':
-        flash('لا يمكن إنشاء حساب مطوّر النظام إلا من حساب المطوّر', 'error')
+    if role not in assignable_roles_for(current_user):
+        flash('لا يمكنك إنشاء حساب بهذا الدور — يتجاوز صلاحياتك الخاصة', 'error')
         return redirect(url_for('users'))
     username_val = (request.form.get('username') or '').strip()
     full_name_val = request.form.get('full_name')
@@ -4875,12 +4905,25 @@ def edit_user(id):
     if u.role == 'developer' and current_user.role != 'developer':
         flash('غير مسموح بتعديل هذا الحساب', 'error')
         return redirect(url_for('users'))
+    # لا يجوز لمستخدم (غير أدمن/مطوّر) تعديل أي بيانات لحساب في نفس رتبته أو أعلى
+    # (كلمة المرور، التفعيل، الصلاحيات...) إلا حسابه الخاص — يمنع مثلاً مشرفاً من
+    # تغيير كلمة مرور حساب أدمن آخر أو تعطيله.
+    if (u.id != current_user.id
+            and getattr(current_user, 'role', None) not in ('admin', 'developer')
+            and ROLE_RANK.get(u.role, 1) >= ROLE_RANK.get(getattr(current_user, 'role', None), 1)):
+        flash('غير مسموح بتعديل حساب في نفس مستواك أو أعلى', 'error')
+        return redirect(url_for('users'))
     if request.method == 'POST':
         old_role = u.role
         role = request.form.get('role', u.role)
-        if role == 'developer' and current_user.role != 'developer':
-            flash('لا يمكن تعيين دور مطوّر النظام', 'error')
-            return redirect(url_for('edit_user', id=id))
+        if role != old_role:
+            if role not in assignable_roles_for(current_user):
+                flash('لا يمكنك تعيين هذا الدور — يتجاوز صلاحياتك الخاصة', 'error')
+                return redirect(url_for('edit_user', id=id))
+            if (getattr(current_user, 'role', None) not in ('admin', 'developer')
+                    and ROLE_RANK.get(old_role, 1) >= ROLE_RANK.get(current_user.role, 1)):
+                flash('لا يمكنك تعديل دور حساب في نفس مستواك أو أعلى', 'error')
+                return redirect(url_for('edit_user', id=id))
         u.full_name = request.form.get('full_name')
         u.role = role
         u.branch_id = request.form.get('branch_id') or None
@@ -4893,11 +4936,14 @@ def edit_user(id):
             u.permissions = None
         else:
             perms = request.form.getlist('perm')
+            always_keep = frozenset()
             if current_user.role != 'developer':
+                # نحافظ على كل صلاحية كانت محفوظة للمستخدم ولا يملك المُحرِّر الحالي
+                # رؤيتها/منحها (مثل صلاحيات المطوّر أو صلاحية لا يملكها المُحرِّر نفسه)
+                # بدلاً من حذفها بصمت لمجرد أن هذا المُحرِّر لا يراها في النموذج.
                 oldp = _perm_list_from_user(u) or set()
-                keep_d = [p for p in oldp if p in DEVELOPER_ONLY_PERMS]
-                perms = [p for p in perms if p not in DEVELOPER_ONLY_PERMS] + keep_d
-            stored = _permissions_form_to_stored(perms, role, keys_visible)
+                always_keep = frozenset(p for p in oldp if p not in keys_visible)
+            stored = _permissions_form_to_stored(perms, role, keys_visible, always_keep=always_keep)
             u.permissions = json.dumps(stored, ensure_ascii=False) if stored else None
         db.session.commit()
         flash('تم حفظ بيانات المستخدم', 'success')
@@ -4907,6 +4953,7 @@ def edit_user(id):
     selected_perms = effective_selected_permissions_for_form(u, keys_visible)
     return render_template(
         'user_edit.html', u=u, branches=branches, selected_perms=selected_perms,
+        assignable_roles=assignable_roles_for(current_user),
         default_perms_by_role=default_permissions_json_for_editor(current_user))
 
 @app.route('/settings/branches')
@@ -5675,7 +5722,6 @@ def connected_users_force_logout(user_id):
         return redirect(url_for('connected_users_page'))
     target = User.query.get_or_404(user_id)
     # ترتيب الصلاحيات: developer > admin > manager > user
-    ROLE_RANK = {'developer': 4, 'admin': 3, 'manager': 2, 'user': 1}
     my_rank     = ROLE_RANK.get(current_user.role, 1)
     target_rank = ROLE_RANK.get(target.role, 1)
     # لا يمكن إخراج مستخدم له نفس الرتبة أو أعلى
@@ -5691,7 +5737,7 @@ def connected_users_force_logout(user_id):
 @app.route('/inventory/memos')
 @login_required
 def inventory_memos_list():
-    if not user_can(current_user, 'inventory'):
+    if not user_can(current_user, 'inventory_memos'):
         flash('لا صلاحية', 'error')
         return redirect(safe_home_url_for(current_user))
     memos = InventoryMemo.query.options(
@@ -5705,7 +5751,7 @@ def inventory_memos_list():
 @app.route('/inventory/memos/issue', methods=['GET', 'POST'])
 @login_required
 def inventory_memo_issue():
-    if not user_can(current_user, 'inventory'):
+    if not user_can(current_user, 'inventory_memos'):
         flash('لا صلاحية', 'error')
         return redirect(safe_home_url_for(current_user))
     if request.method == 'POST':
@@ -5795,7 +5841,7 @@ def inventory_memo_issue():
 @app.route('/inventory/memos/receive', methods=['GET', 'POST'])
 @login_required
 def inventory_memo_receive():
-    if not user_can(current_user, 'inventory'):
+    if not user_can(current_user, 'inventory_memos'):
         flash('لا صلاحية', 'error')
         return redirect(safe_home_url_for(current_user))
     if request.method == 'POST':
@@ -5872,7 +5918,7 @@ def inventory_memo_receive():
 @app.route('/inventory/memos/<int:id>')
 @login_required
 def inventory_memo_detail(id):
-    if not user_can(current_user, 'inventory'):
+    if not user_can(current_user, 'inventory_memos'):
         flash('لا صلاحية', 'error')
         return redirect(safe_home_url_for(current_user))
     memo = InventoryMemo.query.options(
@@ -5887,7 +5933,7 @@ def inventory_memo_detail(id):
 @app.route('/inventory/memos/<int:id>/print')
 @login_required
 def inventory_memo_print(id):
-    if not user_can(current_user, 'inventory'):
+    if not user_can(current_user, 'inventory_memos'):
         flash('لا صلاحية', 'error')
         return redirect(safe_home_url_for(current_user))
     memo = InventoryMemo.query.options(
@@ -5907,7 +5953,7 @@ def inventory_memo_print(id):
 @app.route('/inventory/memos/<int:id>/delete', methods=['POST'])
 @login_required
 def inventory_memo_delete(id):
-    if not user_can(current_user, 'inventory'):
+    if not user_can(current_user, 'inventory_memos'):
         flash('لا صلاحية', 'error')
         return redirect(safe_home_url_for(current_user))
     memo = InventoryMemo.query.options(joinedload(InventoryMemo.items)).get_or_404(id)
@@ -6775,10 +6821,14 @@ def toggle_user(id):
         return redirect(url_for('users'))
     if user.id == current_user.id:
         flash('لا يمكنك تعطيل حسابك الخاص', 'error')
-    else:
-        user.is_active = not user.is_active
-        db.session.commit()
-        flash(f'تم {"تفعيل" if user.is_active else "تعطيل"} المستخدم {user.username}', 'success')
+        return redirect(url_for('users'))
+    if (getattr(current_user, 'role', None) not in ('admin', 'developer')
+            and ROLE_RANK.get(user.role, 1) >= ROLE_RANK.get(getattr(current_user, 'role', None), 1)):
+        flash('غير مسموح بتعديل حساب في نفس مستواك أو أعلى', 'error')
+        return redirect(url_for('users'))
+    user.is_active = not user.is_active
+    db.session.commit()
+    flash(f'تم {"تفعيل" if user.is_active else "تعطيل"} المستخدم {user.username}', 'success')
     return redirect(url_for('users'))
 
 
@@ -6795,6 +6845,10 @@ def delete_user_account(id):
         return redirect(url_for('users'))
     if u.role == 'developer' and current_user.role != 'developer':
         flash('غير مسموح بحذف هذا الحساب', 'error')
+        return redirect(url_for('users'))
+    if (getattr(current_user, 'role', None) not in ('admin', 'developer')
+            and ROLE_RANK.get(u.role, 1) >= ROLE_RANK.get(getattr(current_user, 'role', None), 1)):
+        flash('غير مسموح بحذف حساب في نفس مستواك أو أعلى', 'error')
         return redirect(url_for('users'))
     try:
         db.session.delete(u)
@@ -6823,6 +6877,28 @@ def report_expenses():
     return render_template('report_expenses.html',
         expenses=expenses, by_category=by_category,
         total=total, date_from=date_from, date_to=date_to)
+
+
+# ===== EXCEL EXPORT BLUEPRINT (excel_export.py) =====
+# بنحقن مراجع db والموديلات مباشرة (init_models) بدل "from app import ..."
+# جوه excel_export.py، لأن الاستيراد ده كان بيخلي بايثون ينفّذ app.py من
+# جديد لو كان شغّال كـ __main__ (مثلاً عند تشغيل python app.py على
+# وندوز)، فيتكوّن تطبيق Flask ثاني وكائن SQLAlchemy(app) ثاني، وهو سبب:
+# "RuntimeError: The current Flask app is not registered with this
+# 'SQLAlchemy' instance".
+try:
+    from excel_export import excel_bp, init_models
+    init_models(
+        db=db, Customer=Customer, Supplier=Supplier, Product=Product,
+        Stock=Stock, Warehouse=Warehouse,
+        Sale=Sale, SaleItem=SaleItem, SaleReturn=SaleReturn, SaleReturnItem=SaleReturnItem,
+        Purchase=Purchase, PurchaseItem=PurchaseItem,
+        PurchaseReturn=PurchaseReturn, PurchaseReturnItem=PurchaseReturnItem,
+        get_app_settings_dict=get_app_settings_dict, DEFAULT_SETTINGS=DEFAULT_SETTINGS,
+    )
+    app.register_blueprint(excel_bp)
+except Exception as _e:  # pragma: no cover
+    _logger.warning("تعذّر تحميل وحدة تصدير إكسيل: %s", _e)
 
 
 def _open_browser():
